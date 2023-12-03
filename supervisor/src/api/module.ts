@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common"
 
-import { ApiController } from "./controller"
+import { ResponseInterceptor } from "./api.middleware"
+import { MPSKController } from "./mpsks.controller"
+import { RadiusdController } from "./radiusd.controller"
 import { RadiusdModule } from "../radiusd/module"
 
 @Module({
-    controllers: [ApiController],
+    controllers: [MPSKController, RadiusdController],
     imports: [RadiusdModule],
+    providers: [ResponseInterceptor],
 })
 export class ApiModule {}

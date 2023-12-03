@@ -30,6 +30,6 @@ export class FileBasedStorage<T> {
     }
 
     protected async save(data: T): Promise<void> {
-        await writeFile(this.jsonFilePath, JSON.stringify(data))
+        await writeFile(this.jsonFilePath, JSON.stringify(data, undefined, 4))
     }
 }

@@ -6,9 +6,9 @@
         "web"
     ],
     "dependencies": {
-        "@types/node": "^20.10.2",
+        "@types/node": "^20.10.3",
         "fp-ts": "^2.16.1",
-        "io-ts": "^2.2.20",
+        "io-ts": "^2.2.21",
         "ts-node": "^10.9.1",
         "typescript": "^5.3.2"
     },
@@ -23,5 +23,9 @@
         "eslint-plugin-prettier": "^5.0.1",
         "eslint-plugin-promise": "^6.1.1",
         "prettier": "^3.1.0"
+    },
+    "scripts": {
+        "lint": "eslint --ext .ts .",
+        "lint:fix": "eslint --ext .ts . --fix"
     }
 }
