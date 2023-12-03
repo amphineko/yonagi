@@ -1,0 +1,15 @@
+{
+	"name": "Dockerfile",
+	"build": {
+		"context": "..",
+		"dockerfile": "../Dockerfile"
+	},
+	"appPort": [
+		"3000:3000/tcp",
+		"1812:1812/udp",
+		"1813:1813/udp"
+	],
+	"mounts": [
+		"source=${localWorkspaceFolder}/data,target=/data,type=bind,consistency=cached"
+	]
+}

@@ -1,0 +1,9 @@
+files authorized_users {
+	key = "%{%{Stripped-User-Name}:-%{User-Name}}"
+	filename = /var/run/authorized_users
+}
+
+files authorized_mpsks {
+	key = "%{Calling-Station-ID}"
+	filename = /var/run/authorized_mpsks
+}
