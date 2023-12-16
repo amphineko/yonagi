@@ -9,7 +9,8 @@
 
 -   Supervisor
     -   [ ] API Server
-        -   [ ] MPSK CRUD
+        -   [ ] Client (NAS) CRUD
+        -   [x] MPSK CRUD
         -   [ ] Password/Certificate-based User CRUD
         -   [ ] PKI CRUD
         -   [ ] Radiusd Log/Status
