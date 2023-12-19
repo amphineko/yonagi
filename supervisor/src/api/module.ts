@@ -10,4 +10,5 @@ import { RadiusdModule } from "../radiusd/module"
     imports: [RadiusdModule],
     providers: [ResponseInterceptor],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ApiModule {}

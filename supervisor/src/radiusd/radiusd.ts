@@ -49,11 +49,11 @@ export class Radiusd {
 
     private readonly _buffer: CircularBuffer
     private process: child_process.ChildProcess | null = null
-    private since: number = 0
+    private since = 0
 
     async _regenerateFiles(): Promise<void> {
-        const clients = await this.clientStorage.list()
-        const mpsks = await this.mpskStorage.list()
+        const clients = await this.clientStorage.all()
+        const mpsks = await this.mpskStorage.all()
         await Promise.all([
             generateAuthorizedMpsksFile(mpsks, this.config.authorizedMpsksOutputPath),
             generateClientsFile(clients, this.config.clientsOutputPath),
@@ -76,8 +76,12 @@ export class Radiusd {
         this.since = Date.now()
 
         await new Promise<void>((resolve, reject) => {
-            child.on("exit", (code) => reject(new Error(`Radiusd exited unexpectedly: ${code}`)))
-            child.on("error", (error: Error | string) => reject(new Error(`Cannot spawn radiusd: ${error.toString()}`)))
+            child.on("exit", (code) => {
+                reject(new Error(`Radiusd exited unexpectedly: ${code}`))
+            })
+            child.on("error", (error: Error | string) => {
+                reject(new Error(`Cannot spawn radiusd: ${error.toString()}`))
+            })
             child.on("spawn", () => {
                 logger.info(`Radiusd spawned (pid: ${child.pid})`)
                 resolve()
@@ -108,7 +112,9 @@ export class Radiusd {
         return new Promise<number>((resolve) => {
             logger.info(`Stopping radiusd (pid: ${process.pid})`)
 
-            process.on("exit", (code) => resolve(code ?? 0))
+            process.on("exit", (code) => {
+                resolve(code ?? 0)
+            })
             process.kill()
 
             if (process.exitCode !== null) {

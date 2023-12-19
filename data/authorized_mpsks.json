@@ -1,7 +1,10 @@
 {
     "nekomimi": {
-        "name": "nekomimi",
         "callingStationId": "11-45-14-19-19-81",
-        "psk": "yayayaya"
+        "psk": "yayayayo"
+    },
+    "fastfood": {
+        "callingStationId": "11-45-14-19-19-82",
+        "psk": "yayayayo"
     }
 }

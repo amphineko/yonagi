@@ -1,0 +1,77 @@
+import { BadRequestException, InternalServerErrorException } from "@nestjs/common"
+import { Name, NameType } from "@yonagi/common/common"
+import { KVStorage } from "@yonagi/common/storage"
+import * as E from "fp-ts/lib/Either"
+import * as Task from "fp-ts/lib/Task"
+import * as TE from "fp-ts/lib/TaskEither"
+import * as F from "fp-ts/lib/function"
+import * as PR from "io-ts/lib/PathReporter"
+import * as t from "io-ts/lib/index"
+
+function mapLeftDecodeError<O extends Error, A>(f: (message: string) => O): (e: t.Validation<A>) => E.Either<O, A> {
+    return E.mapLeft(F.flow(PR.failure, (errors) => errors.join(", "), f))
+}
+
+function sanitizeName(name: string): string {
+    return F.pipe(
+        NameType.decode(name),
+        mapLeftDecodeError((message) => new BadRequestException("Malformed name: " + message)),
+        E.getOrElse<Error, Name>((error) => {
+            throw error
+        }),
+    )
+}
+
+export function createOrUpdate<P extends t.Props, T = t.TypeC<P>, PT = t.PartialC<P>>(
+    unsanitizedName: string,
+    body: unknown,
+    createRequestType: t.Decoder<unknown, T>,
+    updateRequestType: t.Decoder<unknown, PT>,
+    storage: KVStorage<Name, T>,
+): Task.Task<void> {
+    const name: Name = sanitizeName(unsanitizedName)
+
+    return F.pipe(
+        TE.tryCatch(
+            () => storage.get(name),
+            (reason) => new InternalServerErrorException(reason),
+        ),
+
+        TE.flatMap(
+            F.flow(
+                E.fromNullable(null),
+                E.fold(
+                    () =>
+                        F.pipe(
+                            createRequestType.decode(body),
+                            mapLeftDecodeError((message) => new BadRequestException(message)),
+                        ),
+                    (current) =>
+                        F.pipe(
+                            updateRequestType.decode(body),
+                            mapLeftDecodeError((message) => new BadRequestException(message)),
+                            E.map((update) => {
+                                Object.assign(current, update)
+                                return current
+                            }),
+                        ),
+                ),
+                TE.fromEither,
+            ),
+        ),
+
+        TE.flatMap((value) =>
+            TE.tryCatch(
+                () => storage.set(name, value),
+                (reason) => new InternalServerErrorException(reason),
+            ),
+        ),
+
+        TE.fold(
+            (error) => {
+                throw error
+            },
+            () => Task.of(undefined),
+        ),
+    )
+}

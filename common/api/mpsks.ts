@@ -1,22 +1,22 @@
 import * as t from "io-ts/lib"
 
-import { SanitizedCallingStationId, SanitizedPSK } from "../mpsks"
+import { CallingStationIdType, PSKType } from "../mpsks"
 
 export const CreateOrUpdateMPSKRequestProps = {
-    callingStationId: SanitizedCallingStationId,
-    psk: SanitizedPSK,
+    callingStationId: CallingStationIdType,
+    psk: PSKType,
 }
 
 export const CreateMPSKRequestCodec = t.type({
-    callingStationId: SanitizedCallingStationId,
-    psk: SanitizedPSK,
+    callingStationId: CallingStationIdType,
+    psk: PSKType,
 })
 
-export interface CreateMPSKRequest extends t.TypeOf<typeof CreateMPSKRequestCodec> {}
+export type CreateMPSKRequest = t.TypeOf<typeof CreateMPSKRequestCodec>
 
 export const UpdateMPSKRequestCodec = t.partial({
-    callingStationId: SanitizedCallingStationId,
-    psk: SanitizedPSK,
+    callingStationId: CallingStationIdType,
+    psk: PSKType,
 })
 
-export interface UpdateMPSKRequest extends t.TypeOf<typeof UpdateMPSKRequestCodec> {}
+export type UpdateMPSKRequest = t.TypeOf<typeof UpdateMPSKRequestCodec>

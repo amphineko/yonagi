@@ -2,6 +2,9 @@ import { writeFile } from "fs/promises"
 import { basename } from "path"
 
 import { Client } from "@yonagi/common/clients"
+import { IpNetworkFromStringType, Name } from "@yonagi/common/common"
+import * as RM from "fp-ts/lib/ReadonlyMap"
+import * as F from "fp-ts/lib/function"
 import { pino } from "pino"
 
 import { dedent } from "./indents"
@@ -19,11 +22,15 @@ export function makeClient(name: string, ip: string, secret: string): string {
     `)
 }
 
-export function makeClients(clients: Client[]): string {
-    return clients.map(({ name, ipaddr, secret }) => makeClient(name, ipaddr, secret)).join("\n")
+export function makeClients(clients: ReadonlyMap<Name, Client>): string {
+    return F.pipe(
+        clients,
+        RM.mapWithIndex((name, { ipaddr, secret }) => makeClient(name, IpNetworkFromStringType.encode(ipaddr), secret)),
+        (configs) => Array.from(configs.values()).join("\n"),
+    )
 }
 
-export async function generateClientsFile(clients: Client[], outputPath: string): Promise<void> {
+export async function generateClientsFile(clients: ReadonlyMap<Name, Client>, outputPath: string): Promise<void> {
     const output = makeClients(clients)
     await writeFile(outputPath, output, { encoding: "utf-8" })
     logger.info(`Written clients.conf to ${outputPath}`)

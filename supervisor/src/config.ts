@@ -10,8 +10,8 @@ export class Config {
     public readonly outputDirPath: string
 
     constructor() {
-        this.dataDirPath = process.env["SUPERVISOR_DATA_DIR"] || "/data"
-        this.outputDirPath = process.env["SUPERVISOR_OUTPUT_DIR"] || "/var/run"
+        this.dataDirPath = process.env.SUPERVISOR_DATA_DIR ?? "/data"
+        this.outputDirPath = process.env.SUPERVISOR_OUTPUT_DIR ?? "/var/run"
     }
 
     public get clientsFilePath(): string {

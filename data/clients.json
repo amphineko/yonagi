@@ -1,7 +1,10 @@
 {
     "test": {
         "name": "test",
-        "ipaddr": "0.0.0.0/0",
+        "ipaddr": {
+            "address": "0.0.0.0",
+            "netmask": 0
+        },
         "secret": "test"
     }
 }

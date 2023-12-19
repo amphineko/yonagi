@@ -1,6 +1,6 @@
 import * as t from "io-ts/lib/index"
 
-import { FileBasedStorage } from "./storage"
+import { FileBasedKVStorage } from "./storage"
 
 const optional = <T extends t.Any>(type: T) => t.union([type, t.undefined])
 
@@ -9,20 +9,10 @@ export const JsonAssociation = t.type({
     vlan: t.number,
 })
 
-export interface Association extends t.TypeOf<typeof JsonAssociation> {}
+export type Association = t.TypeOf<typeof JsonAssociation>
 
-export const SanitizedName = new t.Type<string, string, unknown>(
-    "SanitizedName",
-    // is string
-    (u): u is string => typeof u === "string",
-    // match 1-32 characters of a-z A-Z 0-9 - _
-    (u, c) => (typeof u === "string" && /^[a-zA-Z0-9_-]{1,32}$/.test(u) ? t.success(u) : t.failure(u, c)),
-    // identity
-    (a) => a,
-)
-
-export const SanitizedCallingStationId = new t.Type<string, string, unknown>(
-    "SanitizedCallingStationId",
+export const CallingStationIdType = new t.Type<string, string, unknown>(
+    "CallingStationId",
     // is string
     (u): u is string => typeof u === "string",
     // match aa:bb:cc:dd:ee:ff and aa-bb-cc-dd-ee-ff
@@ -31,8 +21,8 @@ export const SanitizedCallingStationId = new t.Type<string, string, unknown>(
     (a) => a.toLowerCase().replace(/[:-]/g, "-"),
 )
 
-export const SanitizedPSK = new t.Type<string, string, unknown>(
-    "SanitizedPSK",
+export const PSKType = new t.Type<string, string, unknown>(
+    "PSK",
     // is string
     (u): u is string => typeof u === "string",
     // match 8-63 characters of a-z A-Z 0-9 - _
@@ -41,41 +31,16 @@ export const SanitizedPSK = new t.Type<string, string, unknown>(
     (a) => a,
 )
 
-export const JsonCallingStationIdAuthentication = t.type({
-    name: SanitizedName,
-    callingStationId: SanitizedCallingStationId,
-    psk: SanitizedPSK,
+export const CallingStationIdAuthenticationType = t.type({
+    callingStationId: CallingStationIdType,
+    psk: PSKType,
     allowedAssociations: optional(t.array(JsonAssociation)),
 })
 
-export interface CallingStationIdAuthentication extends t.TypeOf<typeof JsonCallingStationIdAuthentication> {}
+export type CallingStationIdAuthentication = t.TypeOf<typeof CallingStationIdAuthenticationType>
 
-const JsonMPSKStorage = t.record(t.string, JsonCallingStationIdAuthentication)
-
-export class MPSKStorage extends FileBasedStorage<Record<string, CallingStationIdAuthentication>> {
-    async delete(name: string): Promise<void> {
-        const mpsks = await this.load()
-        delete mpsks[name]
-        await this.save(mpsks)
-    }
-
-    async get(name: string): Promise<CallingStationIdAuthentication | null> {
-        const mpsks = await this.load()
-        return mpsks[name] ?? null
-    }
-
-    async list(): Promise<CallingStationIdAuthentication[]> {
-        const mpsks = await this.load()
-        return Object.values(mpsks)
-    }
-
-    async set(name: string, mpsk: CallingStationIdAuthentication): Promise<void> {
-        const mpsks = await this.load()
-        mpsks[name] = mpsk
-        await this.save(mpsks)
-    }
-
+export class MPSKStorage extends FileBasedKVStorage<CallingStationIdAuthentication> {
     constructor(jsonFilePath: string) {
-        super(jsonFilePath, JsonMPSKStorage)
+        super(jsonFilePath, CallingStationIdAuthenticationType)
     }
 }

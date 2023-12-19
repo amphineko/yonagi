@@ -6,6 +6,7 @@ import { ApiModule } from "./api/module"
 import { RadiusdModule } from "./radiusd/module"
 
 @Module({ imports: [ApiModule, RadiusdModule] })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class RootModule {}
 
 async function main() {

@@ -1,23 +1,17 @@
 import * as t from "io-ts/lib/index"
 
-import { FileBasedStorage } from "./storage"
+import { IpNetworkType, Secret } from "./common"
+import { FileBasedKVStorage } from "./storage"
 
-export interface Client extends t.TypeOf<typeof JsonClient> {}
-
-const JsonClient = t.type({
-    name: t.string,
-    ipaddr: t.string,
-    secret: t.string,
+const ClientType = t.type({
+    ipaddr: IpNetworkType,
+    secret: Secret,
 })
 
-const JsonClientStorage = t.record(t.string, JsonClient)
+export type Client = t.TypeOf<typeof ClientType>
 
-export class ClientStorage extends FileBasedStorage<Record<string, Client>> {
-    async list(): Promise<Client[]> {
-        return Object.values(await this.load())
-    }
-
+export class ClientStorage extends FileBasedKVStorage<Client> {
     constructor(jsonFilePath: string) {
-        super(jsonFilePath, JsonClientStorage)
+        super(jsonFilePath, ClientType)
     }
 }
