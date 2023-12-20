@@ -96,6 +96,12 @@ export class Radiusd {
 
         child.stdout.on("data", (data: Buffer | string) => {
             const lines = data.toString().split("\n")
+
+            if (lines[lines.length - 1].trim() === "") {
+                // strip last empty line
+                lines.pop()
+            }
+
             this._buffer.append(lines)
             process.stdout.write(data)
         })
@@ -137,5 +143,9 @@ export class Radiusd {
 
         await this._regenerateFiles()
         this.process.kill("SIGHUP")
+    }
+
+    getLastLogLines(): string[] {
+        return this._buffer.get()
     }
 }
