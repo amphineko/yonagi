@@ -9,11 +9,11 @@
 
 -   Supervisor
     -   [ ] API Server
-        -   [ ] Client (NAS) CRUD
+        -   [x] Client (NAS) CRUD
         -   [x] MPSK CRUD
         -   [ ] Password/Certificate-based User CRUD
         -   [ ] PKI CRUD
-        -   [ ] Radiusd Log/Status
+        -   [x] Radiusd Log/Status
         -   [x] Radiusd Reload
     -   [ ] Configuration Generator/Renderer
         -   [x] Aruba/Cisco Multi Pre-Shared Key
@@ -25,3 +25,11 @@
     -   [ ] Radiusd
         -   [x] Child Process Management
 -   Web Portal
+
+## Backlogs
+
+-   Supervisor
+    -   API Server
+        -   [ ] Standardize API responses with mandatory typed responses
+            -   Return types should be strongly typed (e.g. /api/v1/clients should return `ListClientResponse` instead of `Record<Name, Client>`)
+            -   Decorators on API methods to signal io-ts codecs for encoding (e.g. encoding `ReadonlyMap<>` into `Record<>` to accommodate `JSON.stringify`)
