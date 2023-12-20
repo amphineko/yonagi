@@ -5,7 +5,7 @@ import { ClientStorage, MPSKStorage } from "./storages"
 import { Config } from "../config"
 
 @Module({
-    exports: [MPSKStorage, Radiusd],
+    exports: [ClientStorage, MPSKStorage, Radiusd],
     providers: [Config, ClientStorage, MPSKStorage, Radiusd],
 })
 export class RadiusdModule implements OnApplicationBootstrap, OnApplicationShutdown {

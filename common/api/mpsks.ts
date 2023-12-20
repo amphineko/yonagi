@@ -1,4 +1,4 @@
-import * as t from "io-ts/lib"
+import * as t from "io-ts/lib/index"
 
 import { CallingStationIdType, PSKType } from "../mpsks"
 
@@ -7,16 +7,6 @@ export const CreateOrUpdateMPSKRequestProps = {
     psk: PSKType,
 }
 
-export const CreateMPSKRequestCodec = t.type({
-    callingStationId: CallingStationIdType,
-    psk: PSKType,
-})
+export const CreateMPSKRequestType = t.type(CreateOrUpdateMPSKRequestProps)
 
-export type CreateMPSKRequest = t.TypeOf<typeof CreateMPSKRequestCodec>
-
-export const UpdateMPSKRequestCodec = t.partial({
-    callingStationId: CallingStationIdType,
-    psk: PSKType,
-})
-
-export type UpdateMPSKRequest = t.TypeOf<typeof UpdateMPSKRequestCodec>
+export const UpdateMPSKRequestType = t.partial(CreateOrUpdateMPSKRequestProps)

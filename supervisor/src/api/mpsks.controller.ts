@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
-import { CreateMPSKRequestCodec, UpdateMPSKRequestCodec } from "@yonagi/common/api/mpsks"
+import { CreateMPSKRequestType, UpdateMPSKRequestType } from "@yonagi/common/api/mpsks"
 import { Name } from "@yonagi/common/common"
 import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
 
@@ -14,7 +14,7 @@ export class MPSKController {
 
     @Post("/:name")
     async createOrUpdate(@Param("name") rawName: string, @Body() body: unknown): Promise<void> {
-        await createOrUpdate(rawName, body, CreateMPSKRequestCodec, UpdateMPSKRequestCodec, this.mpskStorage)()
+        await createOrUpdate(rawName, body, CreateMPSKRequestType, UpdateMPSKRequestType, this.mpskStorage)()
     }
 
     @Delete("/:name")
