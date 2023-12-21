@@ -67,7 +67,7 @@ export class Radiusd {
 
         await this._regenerateFiles()
 
-        const child = spawn("radiusd", ["-f", "-l", "stdout"], {
+        const child = spawn(this.config.radiusdPath, ["-f", "-l", "stdout"], {
             shell: false,
             stdio: [null, "pipe", "pipe"],
         })

@@ -29,4 +29,8 @@ export class Config {
     public get authorizedMpsksOutputPath(): string {
         return `${this.outputDirPath}/authorized_mpsks`
     }
+
+    public get radiusdPath(): string {
+        return process.env.SUPERVISOR_RADIUSD ?? "/usr/sbin/radiusd"
+    }
 }

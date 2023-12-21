@@ -1,42 +1,37 @@
-FROM node:lts-alpine
+FROM node:lts
+
+ARG RADDB=/etc/freeradius/3.0
 
 ENV \
     SUPERVISOR_DATA_DIR=/data \
-    SUPERVISOR_OUTPUT_DIR=/var/run
+    SUPERVISOR_OUTPUT_DIR=/var/run \
+    SUPERVISOR_RADIUSD=/usr/sbin/freeradius
 
 RUN \
-    apk add --no-cache freeradius freeradius-eap freeradius-utils && \
-    sed -i 's/^	auth = no$/	auth = yes/' /etc/raddb/radiusd.conf
+    apt-get update && \
+    apt-get install -y --no-install-recommends freeradius freeradius-utils
+
+RUN \
+    mkdir -p /data /var/run && \
+    rm -f ${RADDB}/clients.conf && \
+    ln -s /var/run/clients.conf ${RADDB}/clients.conf && \
+    touch /var/run/authorized_mpsks && \
+    touch /var/run/authorized_users && \
+    touch /var/run/clients.conf
 
 COPY \
     ./raddb/mods-enabled/eap \
     ./raddb/mods-enabled/files \
-    /etc/raddb/mods-enabled/
+    ${RADDB}/mods-enabled/
 
 COPY \
     ./raddb/sites-enabled/default \
     ./raddb/sites-enabled/inner-tunnel \
-    /etc/raddb/sites-enabled/
+    ${RADDB}/sites-enabled/
 
 COPY \
     ./common \
     ./supervisor \
     /app/
-
-RUN \
-    mkdir -p /var/run && \
-    touch /var/run/authorized_mpsks && \
-    touch /var/run/authorized_users && \
-    touch /var/run/clients.conf
-
-RUN \
-    rm -f /etc/raddb/clients.conf && \
-    ln -s /var/run/clients.conf /etc/raddb/clients.conf
-
-RUN \
-    mkdir /data && \
-    touch /data/authorized_mpsks.json && \
-    touch /data/authorized_users.json && \
-    touch /data/clients.json
 
 WORKDIR /app
