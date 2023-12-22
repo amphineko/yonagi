@@ -1,7 +1,6 @@
 import * as t from "io-ts/lib/index"
 
 import { IpNetworkType, Secret } from "./common"
-import { FileBasedKVStorage } from "./storage"
 
 export const ClientType = t.type({
     ipaddr: IpNetworkType,
@@ -9,9 +8,3 @@ export const ClientType = t.type({
 })
 
 export type Client = t.TypeOf<typeof ClientType>
-
-export class ClientStorage extends FileBasedKVStorage<Client> {
-    constructor(jsonFilePath: string) {
-        super(jsonFilePath, ClientType)
-    }
-}

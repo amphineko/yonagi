@@ -1,7 +1,5 @@
 import * as t from "io-ts/lib/index"
 
-import { FileBasedKVStorage } from "./storage"
-
 const optional = <T extends t.Any>(type: T) => t.union([type, t.undefined])
 
 export const JsonAssociation = t.type({
@@ -38,9 +36,3 @@ export const CallingStationIdAuthenticationType = t.type({
 })
 
 export type CallingStationIdAuthentication = t.TypeOf<typeof CallingStationIdAuthenticationType>
-
-export class MPSKStorage extends FileBasedKVStorage<CallingStationIdAuthentication> {
-    constructor(jsonFilePath: string) {
-        super(jsonFilePath, CallingStationIdAuthenticationType)
-    }
-}

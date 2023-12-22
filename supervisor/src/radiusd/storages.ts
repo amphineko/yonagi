@@ -1,6 +1,5 @@
 import { Inject, Injectable, Scope, forwardRef } from "@nestjs/common"
-import { ClientStorage as RawClientStorage } from "@yonagi/common/clients"
-import { MPSKStorage as RawMPSKStorage } from "@yonagi/common/mpsks"
+import { ClientStorage as RawClientStorage, MPSKStorage as RawMPSKStorage } from "@yonagi/common/storage"
 
 import { Config } from "../config"
 

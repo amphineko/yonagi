@@ -5,7 +5,9 @@ import * as F from "fp-ts/function"
 import * as t from "io-ts"
 import { PathReporter } from "io-ts/lib/PathReporter"
 
+import { Client, ClientType } from "./clients"
 import { Name, NameType } from "./common"
+import { CallingStationIdAuthentication, CallingStationIdAuthenticationType } from "./mpsks"
 
 export interface KVStorage<K extends string, V> {
     all(): Promise<ReadonlyMap<K, V>>
@@ -77,5 +79,17 @@ export abstract class FileBasedKVStorage<T> implements KVStorage<Name, T> {
                 4,
             ),
         )
+    }
+}
+
+export class ClientStorage extends FileBasedKVStorage<Client> {
+    constructor(jsonFilePath: string) {
+        super(jsonFilePath, ClientType)
+    }
+}
+
+export class MPSKStorage extends FileBasedKVStorage<CallingStationIdAuthentication> {
+    constructor(jsonFilePath: string) {
+        super(jsonFilePath, CallingStationIdAuthenticationType)
     }
 }
