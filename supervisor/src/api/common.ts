@@ -75,3 +75,17 @@ export function createOrUpdate<P extends t.Props, T = t.TypeC<P>, PT = t.Partial
         ),
     )
 }
+
+export function EncodeResponseWith<A, O>(codec: t.Type<A, O>): MethodDecorator {
+    // apply encoder.encode to the return value of the decorated method
+    return (target, propertyKey, descriptor: PropertyDescriptor) => {
+        const original = descriptor.value as unknown as (...args: unknown[]) => Promise<unknown>
+        descriptor.value = async function (...args: unknown[]): Promise<O> {
+            const result = await original.apply(this, args)
+            if (!codec.is(result)) {
+                throw new InternalServerErrorException("Invalid response supplied to encoder")
+            }
+            return codec.encode(result)
+        }
+    }
+}

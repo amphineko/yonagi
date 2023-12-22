@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
-import { CreateClientRequestType, UpdateClientRequestType } from "@yonagi/common/api/clients"
-import { Client } from "@yonagi/common/clients"
-import { Name } from "@yonagi/common/common"
+import {
+    CreateClientRequestType,
+    ListClientsResponse,
+    ListClientsResponseType,
+    UpdateClientRequestType,
+} from "@yonagi/common/api/clients"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { createOrUpdate } from "./common"
+import { EncodeResponseWith, createOrUpdate } from "./common"
 import { ClientStorage } from "../radiusd/storages"
 
 @Controller("/api/v1/clients")
@@ -23,7 +26,8 @@ export class RadiusClientController {
     }
 
     @Get("/")
-    async list(): Promise<Record<Name, Client>> {
-        return Object.fromEntries((await this.clientStorage.all()).entries())
+    @EncodeResponseWith(ListClientsResponseType)
+    async list(): Promise<ListClientsResponse> {
+        return await this.clientStorage.all()
     }
 }

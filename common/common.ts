@@ -1,3 +1,4 @@
+import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
@@ -19,6 +20,33 @@ function sanitizeString(u: unknown, c: t.Context, maxLength: number): t.Validati
             (e) => t.failure(u, c, e),
             (s) => t.success(s),
         ),
+    )
+}
+
+export function MapType<
+    KT extends t.Type<string> | t.Type<number> | t.Type<symbol>,
+    VT extends t.Mixed,
+    K extends t.TypeOf<KT> = t.TypeOf<KT>,
+    V extends t.TypeOf<VT> = t.TypeOf<VT>,
+    A extends ReadonlyMap<K, V> = ReadonlyMap<K, V>,
+    O extends A = A,
+>(key: KT, value: VT, name = `Map<${key.name}, ${value.name}>`): t.Type<A, O> {
+    return new t.Type(
+        name,
+        (u): u is A => u instanceof Map && Array.from(u.entries()).every(([k, v]) => key.is(k) && value.is(v)),
+        (u, c) => {
+            if (!(u instanceof Map)) {
+                return t.failure(u, c, "Input is not a Map")
+            }
+
+            const tupleType = t.tuple([key, value])
+            return F.pipe(
+                Array.from(u.entries()),
+                A.traverse(E.Applicative)((u) => tupleType.validate(u, c)),
+                E.map((u) => new Map(u)),
+            ) as t.Validation<A>
+        },
+        (a) => a as O,
     )
 }
 

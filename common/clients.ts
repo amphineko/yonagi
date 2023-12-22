@@ -3,7 +3,7 @@ import * as t from "io-ts/lib/index"
 import { IpNetworkType, Secret } from "./common"
 import { FileBasedKVStorage } from "./storage"
 
-const ClientType = t.type({
+export const ClientType = t.type({
     ipaddr: IpNetworkType,
     secret: Secret,
 })

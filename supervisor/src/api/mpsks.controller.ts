@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
-import { CreateMPSKRequestType, UpdateMPSKRequestType } from "@yonagi/common/api/mpsks"
-import { Name } from "@yonagi/common/common"
-import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
+import {
+    CreateMPSKRequestType,
+    ListMPSKsResponse,
+    ListMPSKsResponseType,
+    UpdateMPSKRequestType,
+} from "@yonagi/common/api/mpsks"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { createOrUpdate } from "./common"
+import { EncodeResponseWith, createOrUpdate } from "./common"
 import { MPSKStorage } from "../radiusd/storages"
 
 @Controller("/api/v1/mpsks")
@@ -23,7 +26,8 @@ export class MPSKController {
     }
 
     @Get("/")
-    async list(): Promise<Record<Name, CallingStationIdAuthentication>> {
-        return Object.fromEntries((await this.mpskStorage.all()).entries())
+    @EncodeResponseWith(ListMPSKsResponseType)
+    async list(): Promise<ListMPSKsResponse> {
+        return await this.mpskStorage.all()
     }
 }
