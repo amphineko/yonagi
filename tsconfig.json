@@ -6,5 +6,8 @@
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "strict": true,
-    }
+    },
+    "exclude": [
+        "node_modules",
+    ],
 }
