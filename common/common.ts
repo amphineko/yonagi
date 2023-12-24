@@ -59,12 +59,14 @@ export const NameType = new t.Type<string, string, unknown>(
 
 export type Name = t.TypeOf<typeof NameType>
 
-export const Secret = new t.Type<string, string, unknown>(
+export const SecretType = new t.Type<string, string, unknown>(
     "Secret",
     (u): u is string => typeof u === "string",
     (u, c) => sanitizeString(u, c, 64),
     (a) => a,
 )
+
+export type Secret = t.TypeOf<typeof SecretType>
 
 const IpAddressType = new t.Type<string, string, unknown>(
     "IpAddress",

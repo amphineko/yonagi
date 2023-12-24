@@ -1,3 +1,5 @@
+"use client"
+
 import { Button, Input, Tooltip, tokens } from "@fluentui/react-components"
 import { DeleteIcon, ErrorIcon, ProgressRingDotsIcon, SaveIcon } from "@fluentui/react-icons-mdl2"
 import { Name } from "@yonagi/common/common"

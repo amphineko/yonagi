@@ -9,30 +9,40 @@ import {
     TableColumnDefinition,
     createTableColumn,
 } from "@fluentui/react-components"
-import { Client } from "@yonagi/common/clients"
-import { IpNetworkFromString, IpNetworkFromStringType, Name, Secret, SecretType } from "@yonagi/common/common"
-import { PropsWithChildren, useMemo } from "react"
+import { Name } from "@yonagi/common/common"
+import {
+    CallingStationId,
+    CallingStationIdAuthentication,
+    CallingStationIdType,
+    PSK,
+    PSKType,
+} from "@yonagi/common/mpsks"
+import { useMemo } from "react"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 
-import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
+import { createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
 import { DeleteRowButton, ElementOfArray, MutableCell } from "../../lib/tables"
 
-const CLIENT_QUERY_KEY = ["clients"]
+const MPSK_QUERY_KEY = "mpsks"
 
-function ClientTable({ clients }: PropsWithChildren<{ clients: ReadonlyMap<Name, Client> }>): JSX.Element {
+function MpskTable({ mpsks }: { mpsks: ReadonlyMap<Name, CallingStationIdAuthentication> }) {
     const queryClient = useQueryClient()
-    const { mutate: edit, isLoading: isEditLoading } = useMutation<unknown, unknown, { name: Name; value: Client }>({
+    const { mutate: edit, isLoading: isEditLoading } = useMutation<
+        unknown,
+        unknown,
+        { name: Name; value: CallingStationIdAuthentication }
+    >({
         mutationFn: async ({ name, value }) => {
             await createOrUpdateByName(name, value)
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: MPSK_QUERY_KEY }),
     })
     const { mutate: deleteRow, isLoading: isDeleteLoading } = useMutation<unknown, unknown, Name>({
         mutationFn: deleteByName,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: MPSK_QUERY_KEY }),
     })
 
-    const items = useMemo(() => [...clients.entries()], [clients])
+    const items = useMemo(() => [...mpsks.entries()], [mpsks])
     const columns: TableColumnDefinition<ElementOfArray<typeof items>>[] = [
         createTableColumn({
             columnId: "name",
@@ -40,29 +50,29 @@ function ClientTable({ clients }: PropsWithChildren<{ clients: ReadonlyMap<Name,
             renderCell: ([name]) => name,
         }),
         createTableColumn({
-            columnId: "ipaddr",
-            renderHeaderCell: () => "Allowed subnet",
-            renderCell: ([name, client]) => (
-                <MutableCell<IpNetworkFromString>
-                    codec={IpNetworkFromStringType}
-                    decodedInitialValue={client.ipaddr}
+            columnId: "macaddr",
+            renderHeaderCell: () => "MAC Address",
+            renderCell: ([name, mpsk]) => (
+                <MutableCell<CallingStationId>
+                    codec={CallingStationIdType}
+                    decodedInitialValue={mpsk.callingStationId}
                     isMutating={isEditLoading}
-                    mutate={(ipaddr) => {
-                        edit({ name, value: { ...client, ipaddr } })
+                    mutate={(callingStationId) => {
+                        edit({ name, value: { ...mpsk, callingStationId } })
                     }}
                 />
             ),
         }),
         createTableColumn({
-            columnId: "secret",
-            renderHeaderCell: () => "Secret",
-            renderCell: ([name, client]) => (
-                <MutableCell<Secret>
-                    codec={SecretType}
-                    decodedInitialValue={client.secret}
+            columnId: "psk",
+            renderHeaderCell: () => "PSK",
+            renderCell: ([name, mpsk]) => (
+                <MutableCell<PSK>
+                    codec={PSKType}
+                    decodedInitialValue={mpsk.psk}
                     isMutating={isEditLoading}
-                    mutate={(secret) => {
-                        edit({ name, value: { ...client, secret } })
+                    mutate={(psk) => {
+                        edit({ name, value: { ...mpsk, psk } })
                     }}
                 />
             ),
@@ -92,12 +102,10 @@ function ClientTable({ clients }: PropsWithChildren<{ clients: ReadonlyMap<Name,
     )
 }
 
-export default function ClientDashboardPage() {
-    const { data: clients } = useQuery<ReadonlyMap<Name, Client>>(CLIENT_QUERY_KEY, async () => await getAllClients())
+export default function MpskDashboardPage() {
+    const { data: mpsks } = useQuery<ReadonlyMap<Name, CallingStationIdAuthentication>>(MPSK_QUERY_KEY, async () => {
+        return new Map(await getAllMpsks())
+    })
 
-    return (
-        <div>
-            <ClientTable clients={clients ?? new Map()} />
-        </div>
-    )
+    return <MpskTable mpsks={mpsks ?? new Map()} />
 }

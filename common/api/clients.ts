@@ -2,11 +2,11 @@ import * as t from "io-ts/lib/index"
 
 import { MapFromRecordType } from "./common"
 import { ClientType } from "../clients"
-import { IpNetworkType, NameType, Secret } from "../common"
+import { IpNetworkType, NameType, SecretType } from "../common"
 
 export const CreateOrUpdateClientRequestProps = {
     ipaddr: IpNetworkType,
-    secret: Secret,
+    secret: SecretType,
 }
 
 export const CreateClientRequestType = t.type(CreateOrUpdateClientRequestProps)

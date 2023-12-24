@@ -19,6 +19,8 @@ export const CallingStationIdType = new t.Type<string, string, unknown>(
     (a) => a.toLowerCase().replace(/[:-]/g, "-"),
 )
 
+export type CallingStationId = t.TypeOf<typeof CallingStationIdType>
+
 export const PSKType = new t.Type<string, string, unknown>(
     "PSK",
     // is string
@@ -28,6 +30,8 @@ export const PSKType = new t.Type<string, string, unknown>(
     // identity
     (a) => a,
 )
+
+export type PSK = t.TypeOf<typeof PSKType>
 
 export const CallingStationIdAuthenticationType = t.type({
     callingStationId: CallingStationIdType,
