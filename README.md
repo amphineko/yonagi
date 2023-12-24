@@ -42,3 +42,7 @@
             -   [x] Return types should be strongly typed (e.g. /api/v1/clients should return `ListClientResponse` instead of `Record<Name, Client>`)
             -   [ ] Request types should be also strongly typed
             -   [x] Decorators on API methods to signal io-ts codecs for encoding (e.g. encoding `ReadonlyMap<>` into `Record<>` to accommodate `JSON.stringify`)
+-   Web
+    -   [ ] Migrate away from Fluent UI. Candidates TBD:
+        -   Base UI
+        -   MUI
