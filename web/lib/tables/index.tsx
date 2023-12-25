@@ -1,6 +1,6 @@
 "use client"
 
-import { Create, Save } from "@mui/icons-material"
+import { Create, DeleteForever, Save } from "@mui/icons-material"
 import { CircularProgress, IconButton, TableCell, TableRow, TextField } from "@mui/material"
 import { Name } from "@yonagi/common/common"
 import * as E from "fp-ts/lib/Either"
@@ -76,6 +76,7 @@ interface MutableTableRowProps<A> {
         stage: (cell: string, partial: Partial<A> | Record<string, never>) => void,
     ) => JSX.Element
     codec: t.Decoder<unknown, A> & t.Encoder<A, unknown>
+    deleteRow: (key: Name) => Promise<void>
     initialValue: A
     key: Name
     name: Name
@@ -92,6 +93,7 @@ interface MutableTableRowProps<A> {
 export function MutableTableRow<A>({
     children,
     codec,
+    deleteRow,
     initialValue,
     name,
     rowType,
@@ -105,6 +107,12 @@ export function MutableTableRow<A>({
         onSuccess: () => {
             setUpdates({})
         },
+    })
+    const { mutate: mutateDelete, isLoading: isLoadingDelete } = useMutation({
+        mutationFn: async () => {
+            await deleteRow(name)
+        },
+        mutationKey: [codec.name, "delete", name],
     })
 
     const [updates, setUpdates] = useState<Record<string, Partial<A> | Record<string, never>>>({})
@@ -144,6 +152,17 @@ export function MutableTableRow<A>({
                     onClick={trySubmit}
                 >
                     {isLoading ? <CircularProgress size="1em" /> : rowType === "create" ? <Create /> : <Save />}
+                </IconButton>
+                <IconButton
+                    aria-label="delete"
+                    color="warning"
+                    disabled={isLoadingDelete}
+                    type="button"
+                    onClick={() => {
+                        mutateDelete()
+                    }}
+                >
+                    {isLoadingDelete ? <CircularProgress size="1em" /> : <DeleteForever />}
                 </IconButton>
             </TableCell>
         </TableRow>

@@ -11,7 +11,7 @@ import {
 import { useMemo } from "react"
 import { useQuery, useQueryClient } from "react-query"
 
-import { createOrUpdateByName, getAllMpsks } from "./actions"
+import { createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
 import { MutableTableCell, MutableTableRow, ReadonlyTableCell } from "../../lib/tables"
 
 const MPSK_QUERY_KEY = "mpsks"
@@ -36,6 +36,10 @@ function MpskTable(): JSX.Element {
                 rowType="update"
                 submit={async (name: Name, mpsk: CallingStationIdAuthentication) => {
                     await createOrUpdateByName(name, mpsk)
+                    await queryClient.invalidateQueries(MPSK_QUERY_KEY)
+                }}
+                deleteRow={async (name: Name) => {
+                    await deleteByName(name)
                     await queryClient.invalidateQueries(MPSK_QUERY_KEY)
                 }}
             >
