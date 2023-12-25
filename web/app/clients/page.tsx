@@ -1,103 +1,80 @@
 "use client"
 
-import {
-    DataGrid,
-    DataGridBody,
-    DataGridCell,
-    DataGridHeader,
-    DataGridRow,
-    TableColumnDefinition,
-    createTableColumn,
-} from "@fluentui/react-components"
-import { Client } from "@yonagi/common/clients"
-import { IpNetworkFromString, IpNetworkFromStringType, Name, Secret, SecretType } from "@yonagi/common/common"
-import { PropsWithChildren, useMemo } from "react"
-import { useMutation, useQuery, useQueryClient } from "react-query"
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { Client, ClientType } from "@yonagi/common/clients"
+import { IpNetworkFromStringType, Name, SecretType } from "@yonagi/common/common"
+import { useMemo } from "react"
+import { useQuery, useQueryClient } from "react-query"
 
-import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
-import { DeleteRowButton, ElementOfArray, MutableCell } from "../../lib/tables"
+import { createOrUpdateByName, getAllClients } from "./actions"
+import { MutableTableCell, MutableTableRow, ReadonlyTableCell } from "../../lib/tables"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
-function ClientTable({ clients }: PropsWithChildren<{ clients: ReadonlyMap<Name, Client> }>): JSX.Element {
+function ClientTable(): JSX.Element {
+    const { data: clients } = useQuery<ReadonlyMap<Name, Client>>(CLIENT_QUERY_KEY, async () => await getAllClients())
     const queryClient = useQueryClient()
-    const { mutate: edit, isLoading: isEditLoading } = useMutation<unknown, unknown, { name: Name; value: Client }>({
-        mutationFn: async ({ name, value }) => {
-            await createOrUpdateByName(name, value)
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }),
-    })
-    const { mutate: deleteRow, isLoading: isDeleteLoading } = useMutation<unknown, unknown, Name>({
-        mutationFn: deleteByName,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: CLIENT_QUERY_KEY }),
-    })
 
-    const items = useMemo(() => [...clients.entries()], [clients])
-    const columns: TableColumnDefinition<ElementOfArray<typeof items>>[] = [
-        createTableColumn({
-            columnId: "name",
-            renderHeaderCell: () => "Name",
-            renderCell: ([name]) => name,
-        }),
-        createTableColumn({
-            columnId: "ipaddr",
-            renderHeaderCell: () => "Allowed subnet",
-            renderCell: ([name, client]) => (
-                <MutableCell<IpNetworkFromString>
-                    codec={IpNetworkFromStringType}
-                    decodedInitialValue={client.ipaddr}
-                    isMutating={isEditLoading}
-                    mutate={(ipaddr) => {
-                        edit({ name, value: { ...client, ipaddr } })
-                    }}
-                />
-            ),
-        }),
-        createTableColumn({
-            columnId: "secret",
-            renderHeaderCell: () => "Secret",
-            renderCell: ([name, client]) => (
-                <MutableCell<Secret>
-                    codec={SecretType}
-                    decodedInitialValue={client.secret}
-                    isMutating={isEditLoading}
-                    mutate={(secret) => {
-                        edit({ name, value: { ...client, secret } })
-                    }}
-                />
-            ),
-        }),
-        createTableColumn({
-            columnId: "actions",
-            renderHeaderCell: () => "Actions",
-            renderCell: ([name]) => <DeleteRowButton name={name} isMutating={isDeleteLoading} mutate={deleteRow} />,
-        }),
-    ]
+    const tableItems = useMemo(() => {
+        if (clients === undefined) {
+            return []
+        }
+        return Array.from(clients.entries()).map(([name, client]) => (
+            <MutableTableRow
+                codec={ClientType}
+                initialValue={client}
+                key={name}
+                name={name}
+                rowType="update"
+                submit={async (name: Name, client: Client) => {
+                    await createOrUpdateByName(name, client)
+                    await queryClient.invalidateQueries(CLIENT_QUERY_KEY)
+                }}
+            >
+                {(name, client, stage) => (
+                    <>
+                        <ReadonlyTableCell value={name} />
+                        <MutableTableCell
+                            codec={IpNetworkFromStringType}
+                            initialValue={client.ipaddr}
+                            stage={(ipaddr) => {
+                                stage("ipaddr", ipaddr ? { ipaddr } : {})
+                            }}
+                        />
+                        <MutableTableCell
+                            codec={SecretType}
+                            initialValue={client.secret}
+                            stage={(secret) => {
+                                stage("secret", secret ? { secret } : {})
+                            }}
+                        />
+                    </>
+                )}
+            </MutableTableRow>
+        ))
+    }, [clients, queryClient])
 
     return (
-        <DataGrid columns={columns} items={items}>
-            <DataGridHeader>
-                <DataGridRow>
-                    {({ renderHeaderCell }) => <DataGridCell>{renderHeaderCell(columns[0])}</DataGridCell>}
-                </DataGridRow>
-            </DataGridHeader>
-            <DataGridBody<ElementOfArray<typeof items>>>
-                {({ item, rowId }) => (
-                    <DataGridRow key={rowId}>
-                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
-                    </DataGridRow>
-                )}
-            </DataGridBody>
-        </DataGrid>
+        <TableContainer>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Allowed Subnet</TableCell>
+                        <TableCell>Secret</TableCell>
+                        <TableCell>Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>{tableItems}</TableBody>
+            </Table>
+        </TableContainer>
     )
 }
 
 export default function ClientDashboardPage() {
-    const { data: clients } = useQuery<ReadonlyMap<Name, Client>>(CLIENT_QUERY_KEY, async () => await getAllClients())
-
     return (
         <div>
-            <ClientTable clients={clients ?? new Map()} />
+            <ClientTable />
         </div>
     )
 }

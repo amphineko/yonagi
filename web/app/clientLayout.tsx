@@ -1,11 +1,16 @@
 "use client"
 
-import { FluentProvider, Tab, TabList, webLightTheme } from "@fluentui/react-components"
+import { Tab, Tabs } from "@mui/material"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useMemo } from "react"
 import { QueryClient, QueryClientProvider } from "react-query"
 
 const queryClient = new QueryClient()
+
+function KeyedLinkTab({ href, label }: { href: string; key: string; label: string }): JSX.Element {
+    return <Tab LinkComponent={Link} href={href} label={label} />
+}
 
 export function RootClientLayout({ children }: { children: React.ReactNode }): JSX.Element {
     const pathname = usePathname()
@@ -16,35 +21,26 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
         "/mpsks": "MPSKs",
     }
     const currentTab = Object.keys(tabs).find((key) => pathname.startsWith(key)) ?? ""
+    const currentTabIndex = Object.keys(tabs).indexOf(currentTab)
 
-    const tabNodes = Object.entries(tabs).map(([key, value]) => (
-        <Tab key={key} value={key}>
-            <Link
-                href={key}
-                style={{
-                    color: "inherit",
-                    textDecoration: "none",
-                }}
-            >
-                {value}
-            </Link>
-        </Tab>
-    ))
+    const tabNodes = useMemo(
+        () => Object.entries(tabs).map(([href, label]) => <KeyedLinkTab href={href} key={href} label={label} />),
+        [tabs],
+    )
+
+    useEffect(() => {
+        const defaultTab = Object.keys(tabs).pop()
+        if (currentTab === "" && defaultTab) {
+            router.push(defaultTab)
+        }
+    })
 
     return (
         <QueryClientProvider client={queryClient}>
-            <FluentProvider theme={webLightTheme}>
-                <TabList
-                    appearance="subtle"
-                    onTabSelect={(e, data) => {
-                        router.push(data.value as string)
-                    }}
-                    selectedValue={currentTab}
-                >
-                    {tabNodes}
-                </TabList>
-                {children}
-            </FluentProvider>
+            <Tabs aria-label="Navigation Tabs" role="navigation" value={currentTabIndex}>
+                {...tabNodes}
+            </Tabs>
+            {children}
         </QueryClientProvider>
     )
 }
