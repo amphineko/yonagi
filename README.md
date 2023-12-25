@@ -43,6 +43,6 @@
             -   [ ] Request types should be also strongly typed
             -   [x] Decorators on API methods to signal io-ts codecs for encoding (e.g. encoding `ReadonlyMap<>` into `Record<>` to accommodate `JSON.stringify`)
 -   Web
-    -   [ ] Migrate away from Fluent UI. Candidates TBD:
-        -   Base UI
-        -   MUI
+    -   [x] Migrate away from Fluent UI to candidates:
+        -   ~~Base UI~~
+        -   **MUI** (migrated)
