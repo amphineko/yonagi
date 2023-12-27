@@ -1,32 +1,26 @@
 "use client"
 
-import { Create, DeleteForever, Save } from "@mui/icons-material"
+import { Add, DeleteForever, Save } from "@mui/icons-material"
 import { CircularProgress, IconButton, TableCell, TableRow, TextField } from "@mui/material"
-import { Name } from "@yonagi/common/common"
+import { Name, NameType } from "@yonagi/common/common"
 import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import { PathReporter } from "io-ts/lib/PathReporter"
 import * as t from "io-ts/lib/index"
-import { useMemo, useState } from "react"
-import { useMutation } from "react-query"
+import { useMemo, useReducer, useState } from "react"
+import { useMutation, useQueryClient } from "react-query"
 
 export type ElementOfArray<T extends readonly unknown[]> = T extends readonly (infer ET)[] ? ET : never
-
-export function ReadonlyTableCell<A>({ value }: { value: A }): JSX.Element {
-    return (
-        <TableCell>
-            <TextField InputProps={{ readOnly: true }} type="text" value={value} variant="standard" />
-        </TableCell>
-    )
-}
 
 export function MutableTableCell<A, IO = string>({
     codec,
     initialValue: initialValue,
+    readOnly,
     stage,
 }: {
     codec: t.Decoder<IO, A> & t.Encoder<A, IO>
     initialValue: A
+    readOnly?: boolean
     stage: (update?: A) => void
 }): JSX.Element {
     const encodedInitialValue = codec.encode(initialValue)
@@ -57,6 +51,7 @@ export function MutableTableCell<A, IO = string>({
             <TextField
                 color={isModified ? "success" : "primary"}
                 error={error !== null}
+                disabled={readOnly ?? false}
                 focused={isModified}
                 type="text"
                 value={encodedValue}
@@ -69,18 +64,18 @@ export function MutableTableCell<A, IO = string>({
     )
 }
 
-interface MutableTableRowProps<A> {
+interface MutableTableRowProps<A, RT extends "create" | "update"> {
     children: (
         key: Name,
-        value: A,
+        value: Partial<A>,
         stage: (cell: string, partial: Partial<A> | Record<string, never>) => void,
     ) => JSX.Element
     codec: t.Decoder<unknown, A> & t.Encoder<A, unknown>
-    deleteRow: (key: Name) => Promise<void>
-    initialValue: A
+    deleteRow?: (key: Name) => Promise<void>
+    initialValue: RT extends "create" ? Partial<A> : A
     key: Name
     name: Name
-    rowType: "create" | "update"
+    rowType: RT
     submit: (key: Name, value: A) => Promise<void>
 }
 
@@ -90,39 +85,39 @@ interface MutableTableRowProps<A> {
  *          touches a cell during a mutation, the staging will be lost when the
  *          mutation completes and become out of sync with the input field.
  */
-export function MutableTableRow<A>({
-    children,
-    codec,
-    deleteRow,
-    initialValue,
-    name,
-    rowType,
-    submit,
-}: MutableTableRowProps<A>): JSX.Element {
-    const { mutate, isLoading } = useMutation({
-        mutationFn: async (value: A) => {
-            await submit(name, value)
-        },
-        mutationKey: [codec.name, "update", name],
-        onSuccess: () => {
-            setUpdates({})
-        },
-    })
-    const { mutate: mutateDelete, isLoading: isLoadingDelete } = useMutation({
-        mutationFn: async () => {
-            await deleteRow(name)
-        },
-        mutationKey: [codec.name, "delete", name],
-    })
+export function MutableTableRow<A, RT extends "create" | "update">(props: MutableTableRowProps<A, RT>): JSX.Element {
+    const { children, codec, deleteRow, initialValue, name: initialName, rowType, submit } = props
+
+    const [submitName, setSubmitName] = useState<Name>(() => (rowType === "create" ? "" : initialName))
+    const nameValidation = NameType.validate(submitName, [])
 
     const [updates, setUpdates] = useState<Record<string, Partial<A> | Record<string, never>>>({})
     const update = useMemo(
         () => Object.values(updates).reduce((acc, partial) => ({ ...acc, ...partial }), initialValue),
         [updates],
     )
+
+    const { mutate, isLoading } = useMutation({
+        mutationFn: async (value: A) => {
+            await submit(submitName, value)
+        },
+        mutationKey: [codec.name, "update", submitName],
+        onSuccess: () => {
+            setUpdates({})
+        },
+    })
+
+    const { mutate: mutateDelete, isLoading: isLoadingDelete } = useMutation({
+        mutationFn: async () => {
+            await deleteRow?.(submitName)
+        },
+        mutationKey: [codec.name, "delete", submitName],
+    })
+
     const validation = codec.validate(update, [])
     const canSubmit =
         E.isRight(validation) &&
+        E.isRight(nameValidation) &&
         Array.from(Object.values(updates)).reduce((acc, partial) => acc + Object.keys(partial).length, 0) > 0
 
     const stage = (cell: string, partial: Partial<A> | Record<string, never>) => {
@@ -142,7 +137,15 @@ export function MutableTableRow<A>({
                 }
             }}
         >
-            {children(name, initialValue, stage)}
+            <MutableTableCell
+                codec={NameType}
+                initialValue={initialName}
+                readOnly={rowType === "update"}
+                stage={(newName?: string) => {
+                    setSubmitName(newName ?? "")
+                }}
+            />
+            {children(initialName, initialValue, stage)}
             <TableCell>
                 <IconButton
                     aria-label="submit"
@@ -151,20 +154,41 @@ export function MutableTableRow<A>({
                     type="submit"
                     onClick={trySubmit}
                 >
-                    {isLoading ? <CircularProgress size="1em" /> : rowType === "create" ? <Create /> : <Save />}
+                    {isLoading ? <CircularProgress size="1em" /> : rowType === "create" ? <Add /> : <Save />}
                 </IconButton>
-                <IconButton
-                    aria-label="delete"
-                    color="warning"
-                    disabled={isLoadingDelete}
-                    type="button"
-                    onClick={() => {
-                        mutateDelete()
-                    }}
-                >
-                    {isLoadingDelete ? <CircularProgress size="1em" /> : <DeleteForever />}
-                </IconButton>
+                {deleteRow && (
+                    <IconButton
+                        aria-label="delete"
+                        color="warning"
+                        disabled={isLoadingDelete}
+                        type="button"
+                        onClick={() => {
+                            mutateDelete()
+                        }}
+                    >
+                        {isLoadingDelete ? <CircularProgress size="1em" /> : <DeleteForever />}
+                    </IconButton>
+                )}
             </TableCell>
         </TableRow>
     )
+}
+
+function useNonce() {
+    const [nonce, increaseNonce] = useReducer((nonce: number) => nonce + 1, 0)
+    return { nonce, increaseNonce }
+}
+
+export function useTableHelpers(queryKey: readonly unknown[]) {
+    const { nonce, increaseNonce } = useNonce()
+    const queryClient = useQueryClient()
+
+    return {
+        invalidate: async () => {
+            await queryClient.invalidateQueries({ queryKey })
+            increaseNonce()
+        },
+        nonce,
+        queryClient,
+    }
 }
