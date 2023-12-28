@@ -20,7 +20,7 @@ export function makeAuthorizedMpsk(
     tunnelMediumType = "IEEE-802",
 ): string {
     return dedent(`
-        ${callingStationId}
+        ${callingStationId.toUpperCase()}
             Tunnel-Medium-Type = ${tunnelMediumType},
             ${vlanAttribute} = ${vlanId},
             Tunnel-Type = ${tunnelType},
