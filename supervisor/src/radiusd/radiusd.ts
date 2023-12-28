@@ -133,12 +133,9 @@ export class Radiusd {
     }
 
     async reload(): Promise<void> {
-        if (!this.process) {
-            throw new Error("Radiusd not started yet")
-        }
-
-        if (this.process.exitCode !== null) {
-            throw new Error("Radiusd already stopped")
+        if (!this.process || this.process.exitCode !== null) {
+            await this.start()
+            return
         }
 
         await this._regenerateFiles()
