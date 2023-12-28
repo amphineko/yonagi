@@ -19,5 +19,8 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start"
+    },
+    "devDependencies": {
+        "eslint-plugin-react-hooks": "^4.6.0"
     }
 }
