@@ -6,8 +6,8 @@ import { IpNetworkFromStringType, Name, SecretType } from "@yonagi/common/common
 import { useMemo } from "react"
 import { useQuery } from "react-query"
 
-import { MutableTableCell, MutableTableRow, useTableHelpers } from "../../lib/tables"
 import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
+import { MutableTableCell, MutableTableRow, useTableHelpers } from "../../lib/tables"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
@@ -59,7 +59,7 @@ function ClientTable(): JSX.Element {
                 {(_, client, stage) => tableCells(client, stage)}
             </MutableTableRow>
         ))
-    }, [clients, queryClient])
+    }, [clients, nonce, queryClient])
 
     return (
         <TableContainer>

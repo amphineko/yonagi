@@ -94,7 +94,7 @@ export function MutableTableRow<A, RT extends "create" | "update">(props: Mutabl
     const [updates, setUpdates] = useState<Record<string, Partial<A> | Record<string, never>>>({})
     const update = useMemo(
         () => Object.values(updates).reduce((acc, partial) => ({ ...acc, ...partial }), initialValue),
-        [updates],
+        [initialValue, updates],
     )
 
     const { mutate, isLoading } = useMutation({
