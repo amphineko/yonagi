@@ -1,31 +1,100 @@
 "use client"
 
-import { Tab, Tabs } from "@mui/material"
+import { Notes, Password, Refresh, SvgIconComponent, WifiPassword } from "@mui/icons-material"
+import { AppBar, Box, Button, Tab, Toolbar, Tooltip, Typography } from "@mui/material"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useMemo } from "react"
-import { QueryClient, QueryClientProvider } from "react-query"
+import { ReactNode, useEffect, useMemo } from "react"
+import { QueryClient, QueryClientProvider, useMutation } from "react-query"
+
+import { reload as doReload } from "./actions"
 
 const queryClient = new QueryClient()
 
-function KeyedLinkTab({ href, label }: { href: string; key: string; label: string }): JSX.Element {
-    return <Tab LinkComponent={Link} href={href} label={label} />
+function ReloadButton(): JSX.Element {
+    const { mutate: reload } = useMutation({
+        mutationFn: doReload,
+        mutationKey: ["index", "radiusd", "reload"],
+    })
+
+    return (
+        <Button
+            color="inherit"
+            onClick={() => {
+                reload()
+            }}
+        >
+            <Tooltip title="Reload">
+                <Refresh />
+            </Tooltip>
+        </Button>
+    )
+}
+
+function CustomTab({
+    href,
+    icon: IconComponent,
+    isSelected,
+    label,
+}: {
+    href: string
+    icon: SvgIconComponent
+    isSelected: boolean
+    key: string
+    label: string
+}): JSX.Element {
+    const LinkComponent = useMemo(
+        () =>
+            ({ href }: { href: string }) => (
+                <Button
+                    color="inherit"
+                    href={href}
+                    startIcon={<IconComponent />}
+                    variant={isSelected ? "contained" : "text"}
+                >
+                    {label}
+                </Button>
+            ),
+        [IconComponent, isSelected, label],
+    )
+
+    return (
+        <Link href={href} legacyBehavior passHref>
+            <Tab LinkComponent={LinkComponent} />
+        </Link>
+    )
+}
+
+function SiteTitle({ children }: { children: ReactNode }): JSX.Element {
+    return (
+        <Typography color="text.secondary" fontSize="1em" variant="h1">
+            {children}
+        </Typography>
+    )
 }
 
 export function RootClientLayout({ children }: { children: React.ReactNode }): JSX.Element {
     const pathname = usePathname()
     const router = useRouter()
 
-    const tabs = {
-        "/clients": "Clients",
-        "/mpsks": "MPSKs",
-    }
+    const tabs: Record<string, { label: string; icon: SvgIconComponent }> = useMemo(
+        () => ({
+            "/radiusd/logs": { label: "radiusd.log", icon: Notes },
+            "/clients": { label: "NAS Clients", icon: WifiPassword },
+            "/mpsks": { label: "Device MPSKs", icon: Password },
+        }),
+        [],
+    )
     const currentTab = Object.keys(tabs).find((key) => pathname.startsWith(key)) ?? ""
-    const currentTabIndex = Object.keys(tabs).indexOf(currentTab)
 
     const tabNodes = useMemo(
-        () => Object.entries(tabs).map(([href, label]) => <KeyedLinkTab href={href} key={href} label={label} />),
-        [tabs],
+        () =>
+            Array.from(Object.entries(tabs)).map(([href, { label, icon }]) => (
+                <Box sx={{ flexGrow: 0 }}>
+                    <CustomTab href={href} icon={icon} isSelected={href === currentTab} key={href} label={label} />
+                </Box>
+            )),
+        [currentTab, tabs],
     )
 
     useEffect(() => {
@@ -37,9 +106,17 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Tabs aria-label="Navigation Tabs" role="navigation" value={currentTabIndex}>
-                {...tabNodes}
-            </Tabs>
+            <AppBar color="default" position="sticky">
+                <Toolbar role="navigation" sx={{ gap: "1em" }} variant="dense">
+                    {tabNodes}
+                    <Box sx={{ display: "flex", flexGrow: 1, justifyContent: "end" }}>
+                        <SiteTitle>yonagi-web</SiteTitle>
+                    </Box>
+                    <Box sx={{ flexGrow: 0 }}>
+                        <ReloadButton />
+                    </Box>
+                </Toolbar>
+            </AppBar>
             {children}
         </QueryClientProvider>
     )

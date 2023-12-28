@@ -4,7 +4,7 @@ import { ListMPSKsResponseType } from "@yonagi/common/api/mpsks"
 import { Name } from "@yonagi/common/common"
 import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
 
-import { getAll } from "../../lib/actions"
+import { getTypedEndpoint } from "../../lib/actions"
 
 export async function createOrUpdateByName(name: string, mpsk: CallingStationIdAuthentication): Promise<void> {
     await fetch(`http://localhost:8000/api/v1/mpsks/${name}`, {
@@ -23,5 +23,5 @@ export async function deleteByName(name: string): Promise<void> {
 }
 
 export async function getAllMpsks(): Promise<ReadonlyMap<Name, CallingStationIdAuthentication>> {
-    return await getAll("api/v1/mpsks", ListMPSKsResponseType)
+    return await getTypedEndpoint(ListMPSKsResponseType, "api/v1/mpsks")
 }
