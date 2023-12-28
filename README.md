@@ -26,13 +26,14 @@
         -   [x] Child Process Management
 -   Web Portal
     -   [ ] MPSK Authentication Dashboard
+        -   [x] CRUD: Name/Phy Address/PSK
     -   [ ] Password/Certificate-based Authentication Dashboard
     -   [ ] PKI Dashboard
     -   [ ] NAS Client Dashboard
-        -   [ ] CRUD: Name/Allowed Subnet/Secret
-    -   [ ] Radiusd Dashboard
-        -   [ ] Log Inspection
-        -   [ ] Regenerate/Reload
+        -   [x] CRUD: Name/Allowed Subnet/Secret
+    -   [x] Radiusd Dashboard
+        -   [x] Log Inspection
+        -   [x] Regenerate/Reload
 
 ## Backlogs
 
