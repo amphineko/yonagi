@@ -19,10 +19,6 @@ export function makeAuthorizedMpsk(
     tunnelType = "VLAN",
     tunnelMediumType = "IEEE-802",
 ): string {
-    if (callingStationId.search(/^([A-F0-9]{2}-){5}[A-F0-9]{2}$/) === -1) {
-        throw new Error(`Malformed MAC address: ${callingStationId}`)
-    }
-
     return dedent(`
         ${callingStationId}
             Tunnel-Medium-Type = ${tunnelMediumType},
