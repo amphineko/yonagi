@@ -83,7 +83,22 @@ function MpskTable(): JSX.Element {
                         <TableCell>Actions</TableCell>
                     </TableRow>
                 </TableHead>
-                <TableBody>{tableItems}</TableBody>
+                <TableBody>
+                    {tableItems}
+                    <MutableTableRow
+                        codec={CallingStationIdAuthenticationType}
+                        initialValue={{ allowedAssociations: [], callingStationId: "", psk: "" }}
+                        key={`new/${nonce}`}
+                        name={""}
+                        rowType="create"
+                        submit={async (name: Name, mpsk: CallingStationIdAuthentication) => {
+                            await createOrUpdateByName(name, mpsk)
+                            await invalidate()
+                        }}
+                    >
+                        {(_, client, stage) => tableCells(client, stage)}
+                    </MutableTableRow>
+                </TableBody>
             </Table>
         </TableContainer>
     )
