@@ -5,6 +5,19 @@
 -   EAP-MSCHAPv2
 -   EAP-TLS
 
+## Project Structure
+
+-   `/common` - Shared Libraries: Serializers and Typings on [io-ts](https://github.com/gcanti/io-ts)
+    -   `/api` - specific for APIs between `@yonagi/supervisor` and `@yonagi/web`
+-   `/supervisor` - The Radiusd Supervisor/Daemon on [NestJS](https://github.com/nestjs/nest)
+    -   `/api` - API Controllers: Logic and Sanitization
+    -   `/pki` - PKI: CA and Certificate Management on _PKI.js_
+    -   `/configs` - Radiusd Config Generation
+    -   `/radiusd` - Radiusd Process Management
+-   `/web` - The Web Frontend on [next.js](https://github.com/vercel/next.js)
+    -   `/app` - React pages with some shiny server components
+    -   `/lib` - Shared libraries for all pages
+
 ## Roadmap
 
 -   Supervisor
@@ -51,6 +64,8 @@
             -   [x] Return types should be strongly typed (e.g. /api/v1/clients should return `ListClientResponse` instead of `Record<Name, Client>`)
             -   [ ] Request types should be also strongly typed
             -   [x] Decorators on API methods to signal io-ts codecs for encoding (e.g. encoding `ReadonlyMap<>` into `Record<>` to accommodate `JSON.stringify`)
+    -   Storage
+        -   [ ] Move storage-related code from `@yonagi/common` to `@yonagi/supervisor`
 -   Web
     -   [x] Migrate away from Fluent UI to candidates:
         -   ~~Base UI~~
