@@ -20,10 +20,18 @@
         -   [ ] EAP-GTC/MSCHAPv2
         -   [ ] EAP-TLS
     -   [ ] PKI
-        -   [ ] Trusted Certificate Authority Import
-        -   [ ] Server Certificate Import/Generation
+        -   [ ] Certificate Authority
+            -   [x] Self-Signed CA
+            -   [ ] Existing CA/intermediate import
+        -   [ ] Server Certificate
+            -   [ ] Certificate Issue from CA
+            -   [ ] Deploy to radiusd
+        -   [ ] User Certificate
     -   [ ] Radiusd
         -   [x] Child Process Management
+    -   [ ] Storage
+        -   [x] File/JSON-based Storage
+        -   [ ] PostgreSQL-backed Storage
 -   Web Portal
     -   [ ] MPSK Authentication Dashboard
         -   [x] CRUD: Name/Phy Address/PSK
