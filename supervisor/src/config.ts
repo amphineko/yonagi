@@ -1,5 +1,4 @@
-import { Injectable } from "@nestjs/common"
-import {} from "@nestjs/config"
+import { Injectable, Module } from "@nestjs/common"
 
 @Injectable()
 export class Config {
@@ -18,6 +17,14 @@ export class Config {
         return `${this.dataDirPath}/clients.json`
     }
 
+    public get pkiPath(): string {
+        return `${this.dataDirPath}/pki`
+    }
+
+    public get pkiStatePath(): string {
+        return `${this.pkiPath}/state.json`
+    }
+
     public get clientsOutputPath(): string {
         return `${this.outputDirPath}/clients.conf`
     }
@@ -34,3 +41,7 @@ export class Config {
         return process.env.SUPERVISOR_RADIUSD ?? "/usr/sbin/radiusd"
     }
 }
+
+@Module({ exports: [Config], providers: [Config] })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+export class ConfigModule {}

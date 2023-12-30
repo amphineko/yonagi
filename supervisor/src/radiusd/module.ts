@@ -2,11 +2,12 @@ import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardR
 
 import { Radiusd } from "./radiusd"
 import { ClientStorage, MPSKStorage } from "./storages"
-import { Config } from "../config"
+import { ConfigModule } from "../config"
 
 @Module({
     exports: [ClientStorage, MPSKStorage, Radiusd],
-    providers: [Config, ClientStorage, MPSKStorage, Radiusd],
+    imports: [ConfigModule],
+    providers: [ClientStorage, MPSKStorage, Radiusd],
 })
 export class RadiusdModule implements OnApplicationBootstrap, OnApplicationShutdown {
     constructor(@Inject(forwardRef(() => Radiusd)) private radiusd: Radiusd) {}
