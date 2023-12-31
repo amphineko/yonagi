@@ -36,10 +36,10 @@
         -   [ ] Certificate Authority
             -   [x] Self-Signed CA
             -   [ ] Existing CA/intermediate import
-        -   [ ] Server Certificate
-            -   [ ] Certificate Issue from CA
-            -   [ ] Deploy to radiusd
-        -   [ ] User Certificate
+            -   [x] Certificate Issue
+            -   [x] CA/Server/Client CRUD
+        -   [ ] Deployment
+            -   [ ] Export Certificate Bundles and Keys to Radiusd
     -   [ ] Radiusd
         -   [x] Child Process Management
     -   [ ] Storage
