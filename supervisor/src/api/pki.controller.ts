@@ -11,7 +11,8 @@ import {
     UseInterceptors,
     forwardRef,
 } from "@nestjs/common"
-import { CertificateInfo, CreateCertificateAuthorityRequestType } from "@yonagi/common/api/pki"
+import { CertificateInfo, CreateCertificateRequestType } from "@yonagi/common/api/pki"
+import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -19,9 +20,9 @@ import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 import * as pkijs from "pkijs"
 
+import { formatValueHex, getCertificateSerialAsHexString, parsePkijsRdn } from "../pki/exchange"
+import { Certificate, Pki } from "../pki/pki"
 import { ResponseInterceptor } from "./api.middleware"
-import { Pki } from "../pki/pki"
-import { parsePkijsRdn } from "../pki/utils"
 
 @Controller("/api/v1/pki")
 @UseInterceptors(ResponseInterceptor)
@@ -31,68 +32,112 @@ export class PkiController {
     @Get("/")
     async get() {
         const ca = (await this.pki.getCertificateAuthority())?.cert
+        const server = (await this.pki.getServerCertificate())?.cert
+        const clients = await this.pki.listClientCertificates()
         return {
             ca: ca ? this.getCertificateSummary(ca) : null,
+            server: server ? this.getCertificateSummary(server) : null,
+            clients: clients.map((c) => this.getCertificateSummary(c.cert)),
         }
     }
 
     @Post("/ca")
     async createCertificateAuthority(@Body() body: unknown): Promise<CertificateInfo> {
-        return await F.pipe(
-            TE.fromEither(CreateCertificateAuthorityRequestType.decode(body)),
+        return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
+            this.pki.createCertificateAuthority(subject, validity),
+        )
+    }
+
+    @Delete("/ca/:serial")
+    async deleteCertificateAuthority(@Param("serial") u: unknown): Promise<void> {
+        await this.deleteCertificateBySerial(
+            u,
+            () => this.pki.getCertificateAuthority(),
+            () => this.pki.deleteCertificateAuthority(),
+        )
+    }
+
+    @Post("/server")
+    async createServerCertificate(@Body() body: unknown): Promise<CertificateInfo> {
+        return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
+            this.pki.createServerCertificate(subject, validity),
+        )
+    }
+
+    @Delete("/server/:serial")
+    async deleteServerCertificate(@Param("serial") u: unknown): Promise<void> {
+        await this.deleteCertificateBySerial(
+            u,
+            () => this.pki.getServerCertificate(),
+            () => this.pki.deleteServerCertificate(),
+        )
+    }
+
+    @Post("/clients")
+    async createClientCertificate(@Body() body: unknown): Promise<CertificateInfo> {
+        return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
+            this.pki.createClientCertificate(subject, validity),
+        )
+    }
+
+    @Delete("/clients/:serial")
+    async deleteClientCertificate(@Param("serial") serial: unknown): Promise<void> {
+        await this.deleteCertificateBySerial(
+            serial,
+            (serial) => this.pki.getClientCertificate(serial),
+            (serial) => this.pki.deleteClientCertificate(serial),
+        )
+    }
+
+    private createCertificateFromRequest<T>(
+        body: unknown,
+        decoder: t.Decoder<unknown, T>,
+        create: (req: T) => Promise<Certificate>,
+    ) {
+        return F.pipe(
+            TE.fromEither(decoder.decode(body)),
             TE.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
-            TE.flatMap(({ subject, validity }) =>
-                TE.tryCatch(async () => await this.pki.createCertificateAuthority(subject, validity), E.toError),
-            ),
-            TE.map((ca) => this.getCertificateSummary(ca.cert)),
+            TE.flatMap((req) => TE.tryCatch(async () => await create(req), E.toError)),
+            TE.map((cert) => this.getCertificateSummary(cert.cert)),
             TE.getOrElse((error) => {
                 throw error
             }),
         )()
     }
 
-    @Delete("/ca/:serial")
-    async deleteCertificateAuthority(@Param("serial") u: unknown): Promise<void> {
-        const serial = F.pipe(
-            t.string.decode(u),
-            E.fold(
-                (errors) => {
-                    throw new BadRequestException(PR.failure(errors).join(", "))
-                },
-                (u) => u,
+    private async deleteCertificateBySerial(
+        unknownSerial: unknown,
+        getCertificate: (serial: SerialNumberString) => Promise<Certificate | null>,
+        deleteCertificate: (serial: SerialNumberString) => Promise<void>,
+    ): Promise<void> {
+        await F.pipe(
+            // validate serial number
+            SerialNumberStringType.decode(unknownSerial),
+            E.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
+            TE.fromEither,
+            // validate certificate exists and serial matches
+            TE.tap((serial) =>
+                F.pipe(
+                    TE.tryCatch(async () => await getCertificate(serial), E.toError),
+                    TE.filterOrElse(
+                        (cert) => cert !== null && getCertificateSerialAsHexString(cert.cert) === serial,
+                        () => new NotFoundException(null, "Certificate with given serial not found") as Error,
+                    ),
+                ),
             ),
-        )
-
-        const ca = await this.pki.getCertificateAuthority()
-        if (!ca) {
-            throw new NotFoundException(null, "CA not found")
-        }
-        if (this.getCertificateSerial(ca.cert) !== serial) {
-            throw new NotFoundException(null, "CA with given serial not found")
-        }
-
-        await this.pki.deleteCertificateAuthority()
-    }
-
-    private getCertificateSerial(cert: pkijs.Certificate): string {
-        return this.formatValueHex(cert.serialNumber.valueBlock.valueHexView)
+            TE.flatMap((serial) => TE.tryCatch(() => deleteCertificate(serial), E.toError)),
+        )()
     }
 
     private getCertificateSummary(cert: pkijs.Certificate): CertificateInfo {
         return {
             issuer: parsePkijsRdn(cert.issuer),
-            hexSerialNumber: this.getCertificateSerial(cert),
-            publicKey: this.formatValueHex(cert.subjectPublicKeyInfo.subjectPublicKey.valueBlock.valueHexView),
-            signature: this.formatValueHex(cert.signatureValue.valueBlock.valueHexView),
+            hexSerialNumber: getCertificateSerialAsHexString(cert),
+            publicKey: formatValueHex(cert.subjectPublicKeyInfo.subjectPublicKey.valueBlock.valueHexView),
+            signature: formatValueHex(cert.signatureValue.valueBlock.valueHexView),
             subject: parsePkijsRdn(cert.subject),
             validNotAfter: cert.notAfter.value.getTime(),
             validNotBefore: cert.notBefore.value.getTime(),
         }
-    }
-
-    private formatValueHex(buffer: Uint8Array): string {
-        return Array.from(buffer)
-            .map((v) => v.toString(16).padStart(2, "0"))
-            .join(":")
     }
 }

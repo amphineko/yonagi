@@ -24,13 +24,10 @@ function sanitizeString(u: unknown, c: t.Context, maxLength: number): t.Validati
 }
 
 export function MapType<
-    KT extends t.Type<string> | t.Type<number> | t.Type<symbol>,
+    KT extends t.Type<string>,
     VT extends t.Mixed,
-    K extends t.TypeOf<KT> = t.TypeOf<KT>,
-    V extends t.TypeOf<VT> = t.TypeOf<VT>,
-    A extends ReadonlyMap<K, V> = ReadonlyMap<K, V>,
-    O extends A = A,
->(key: KT, value: VT, name = `Map<${key.name}, ${value.name}>`): t.Type<A, O> {
+    A extends ReadonlyMap<t.TypeOf<KT>, t.TypeOf<VT>>,
+>(key: KT, value: VT, name = `Map<${key.name}, ${value.name}>`): t.Type<A, Map<t.OutputOf<KT>, t.OutputOf<VT>>> {
     return new t.Type(
         name,
         (u): u is A => u instanceof Map && Array.from(u.entries()).every(([k, v]) => key.is(k) && value.is(v)),
@@ -46,7 +43,12 @@ export function MapType<
                 E.map((u) => new Map(u)),
             ) as t.Validation<A>
         },
-        (a) => a as O,
+        (a) =>
+            F.pipe(
+                Array.from(a.entries()),
+                A.map(([k, v]) => [key.encode(k), value.encode(v)] as [t.OutputOf<KT>, t.OutputOf<VT>]),
+                (a) => new Map(a),
+            ),
     )
 }
 

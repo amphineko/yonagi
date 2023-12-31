@@ -20,7 +20,7 @@ export const GetPkiResponse = t.type({
     ca: nullable(CertificateInfoType),
 })
 
-export const CreateCertificateAuthorityRequestType = t.type({
+export const CreateCertificateRequestType = t.type({
     subject: RelativeDistinguishedNamesType,
     validity: t.number,
 })

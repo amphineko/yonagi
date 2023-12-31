@@ -2,15 +2,11 @@ import * as t from "io-ts/lib/index"
 
 import { MapType } from "../common"
 
-export function MapFromRecordType<
-    KT extends t.Type<string>,
-    VT extends t.Mixed,
-    K extends t.TypeOf<KT> = t.TypeOf<KT>,
-    V extends t.TypeOf<VT> = t.TypeOf<VT>,
-    M extends ReadonlyMap<K, V> = ReadonlyMap<K, V>,
-    R extends Record<K, V> = Record<K, V>,
->(key: KT, value: VT): t.Type<M, R> {
-    const base = MapType<KT, VT, K, V, M, M>(key, value)
+export function MapFromRecordType<KT extends t.Type<string>, VT extends t.Mixed>(
+    key: KT,
+    value: VT,
+): t.Type<ReadonlyMap<t.TypeOf<KT>, t.TypeOf<VT>>, Record<t.OutputOf<KT>, t.OutputOf<VT>>> {
+    const base = MapType(key, value)
     return new t.Type(
         "MapFromRecord",
         base.is,
@@ -21,7 +17,7 @@ export function MapFromRecordType<
 
             return base.validate(new Map(Object.entries(u)), c)
         },
-        (a) => Object.fromEntries(a) as R,
+        (a) => Object.fromEntries(base.encode(a)) as Record<t.OutputOf<KT>, t.OutputOf<VT>>,
     )
 }
 

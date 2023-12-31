@@ -1,6 +1,8 @@
 import { readFile, writeFile } from "fs/promises"
 
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
+import { MapFromRecordType } from "@yonagi/common/api/common"
+import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -9,7 +11,6 @@ import * as PR from "io-ts/lib/PathReporter"
 
 import { Config } from "../config"
 
-const optional = <T extends t.Mixed>(type: T) => t.union([type, t.undefined])
 type Optional<T> = T | undefined
 
 const Base64BlobType = new t.Type<ArrayBuffer, string, unknown>(
@@ -31,15 +32,17 @@ const Base64BlobType = new t.Type<ArrayBuffer, string, unknown>(
     (a) => Buffer.from(a).toString("base64"),
 )
 
-const PkiCertificateStateType = t.type({
-    cert: Base64BlobType,
-    privKey: optional(Base64BlobType),
-})
+const PkiCertificateStateType = t.intersection([
+    t.type({ cert: Base64BlobType }),
+    t.partial({ privKey: Base64BlobType }),
+]) as t.Type<{ cert: ArrayBuffer; privKey?: ArrayBuffer }, { cert: string; privKey?: string }>
 
 export type PkiCertificateState = t.TypeOf<typeof PkiCertificateStateType>
 
-const PkiStateStorageType = t.type({
-    ca: optional(PkiCertificateStateType),
+const PkiStateStorageType = t.partial({
+    ca: PkiCertificateStateType,
+    server: PkiCertificateStateType,
+    clients: MapFromRecordType(SerialNumberStringType, PkiCertificateStateType),
 })
 
 type PkiStateStorage = t.TypeOf<typeof PkiStateStorageType>
@@ -57,6 +60,43 @@ export class PkiState {
             ...(await this.load()),
             ca: state,
         })
+    }
+
+    public async getServerCertificate(): Promise<Optional<PkiCertificateState>> {
+        return (await this.load()).server
+    }
+
+    public async setServerCertificate(state: Optional<PkiCertificateState>): Promise<void> {
+        await this.save({
+            ...(await this.load()),
+            server: state,
+        })
+    }
+
+    public async getClientCertificate(serial: SerialNumberString): Promise<Optional<PkiCertificateState>> {
+        const store = await this.load()
+        return store.clients?.get(serial)
+    }
+
+    public async setClientCertificate(serial: SerialNumberString, state: Optional<PkiCertificateState>): Promise<void> {
+        const store = await this.load()
+
+        const clients = new Map(store.clients?.entries() ?? [])
+        if (state) {
+            clients.set(serial, state)
+        } else {
+            clients.delete(serial)
+        }
+
+        await this.save({
+            ...store,
+            clients,
+        })
+    }
+
+    public async allClientCertificates(): Promise<Map<SerialNumberString, PkiCertificateState>> {
+        const store = await this.load()
+        return new Map(store.clients?.entries() ?? [])
     }
 
     private async load(): Promise<PkiStateStorage> {
