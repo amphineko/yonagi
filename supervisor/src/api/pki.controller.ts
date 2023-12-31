@@ -11,7 +11,7 @@ import {
     UseInterceptors,
     forwardRef,
 } from "@nestjs/common"
-import { CertificateInfo, CreateCertificateRequestType } from "@yonagi/common/api/pki"
+import { CertificateSummary, CreateCertificateRequestType, GetPkiSummaryResponse } from "@yonagi/common/api/pki"
 import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -20,9 +20,10 @@ import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 import * as pkijs from "pkijs"
 
+import { ResponseInterceptor } from "./api.middleware"
+import { EncodeResponseWith } from "./common"
 import { formatValueHex, getCertificateSerialAsHexString, parsePkijsRdn } from "../pki/exchange"
 import { Certificate, Pki } from "../pki/pki"
-import { ResponseInterceptor } from "./api.middleware"
 
 @Controller("/api/v1/pki")
 @UseInterceptors(ResponseInterceptor)
@@ -30,19 +31,20 @@ export class PkiController {
     constructor(@Inject(forwardRef(() => Pki)) private pki: Pki) {}
 
     @Get("/")
-    async get() {
+    @EncodeResponseWith(GetPkiSummaryResponse)
+    async get(): Promise<GetPkiSummaryResponse> {
         const ca = (await this.pki.getCertificateAuthority())?.cert
         const server = (await this.pki.getServerCertificate())?.cert
         const clients = await this.pki.listClientCertificates()
         return {
-            ca: ca ? this.getCertificateSummary(ca) : null,
-            server: server ? this.getCertificateSummary(server) : null,
+            ca: ca ? this.getCertificateSummary(ca) : undefined,
+            server: server ? this.getCertificateSummary(server) : undefined,
             clients: clients.map((c) => this.getCertificateSummary(c.cert)),
         }
     }
 
     @Post("/ca")
-    async createCertificateAuthority(@Body() body: unknown): Promise<CertificateInfo> {
+    async createCertificateAuthority(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createCertificateAuthority(subject, validity),
         )
@@ -58,7 +60,7 @@ export class PkiController {
     }
 
     @Post("/server")
-    async createServerCertificate(@Body() body: unknown): Promise<CertificateInfo> {
+    async createServerCertificate(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createServerCertificate(subject, validity),
         )
@@ -74,7 +76,7 @@ export class PkiController {
     }
 
     @Post("/clients")
-    async createClientCertificate(@Body() body: unknown): Promise<CertificateInfo> {
+    async createClientCertificate(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createClientCertificate(subject, validity),
         )
@@ -129,7 +131,7 @@ export class PkiController {
         )()
     }
 
-    private getCertificateSummary(cert: pkijs.Certificate): CertificateInfo {
+    private getCertificateSummary(cert: pkijs.Certificate): CertificateSummary {
         return {
             issuer: parsePkijsRdn(cert.issuer),
             hexSerialNumber: getCertificateSerialAsHexString(cert),

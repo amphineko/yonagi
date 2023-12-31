@@ -2,9 +2,7 @@ import * as t from "io-ts"
 
 import { RelativeDistinguishedNamesType } from "../pki"
 
-const nullable = <T extends t.Mixed>(type: T) => t.union([type, t.null])
-
-export const CertificateInfoType = t.type({
+export const CertificateSummaryType = t.type({
     issuer: RelativeDistinguishedNamesType,
     hexSerialNumber: t.string,
     publicKey: t.string,
@@ -14,11 +12,15 @@ export const CertificateInfoType = t.type({
     validNotBefore: t.number,
 })
 
-export type CertificateInfo = t.TypeOf<typeof CertificateInfoType>
+export type CertificateSummary = t.TypeOf<typeof CertificateSummaryType>
 
-export const GetPkiResponse = t.type({
-    ca: nullable(CertificateInfoType),
+export const GetPkiSummaryResponse = t.partial({
+    ca: CertificateSummaryType,
+    server: CertificateSummaryType,
+    clients: t.array(CertificateSummaryType),
 })
+
+export type GetPkiSummaryResponse = t.TypeOf<typeof GetPkiSummaryResponse>
 
 export const CreateCertificateRequestType = t.type({
     subject: RelativeDistinguishedNamesType,

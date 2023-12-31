@@ -1,7 +1,9 @@
 "use client"
 
-import { Notes, Password, Refresh, SvgIconComponent, WifiPassword } from "@mui/icons-material"
-import { AppBar, Box, Button, Tab, Toolbar, Tooltip, Typography } from "@mui/material"
+import { Lock, Notes, Password, Refresh, SvgIconComponent, WifiPassword } from "@mui/icons-material"
+import { AppBar, Box, Button, Stack, Toolbar, Tooltip, Typography } from "@mui/material"
+import CssBaseline from "@mui/material/CssBaseline"
+import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ReactNode, useEffect, useMemo } from "react"
@@ -31,7 +33,7 @@ function ReloadButton(): JSX.Element {
     )
 }
 
-function CustomTab({
+function TabButton({
     href,
     icon: IconComponent,
     isSelected,
@@ -43,24 +45,17 @@ function CustomTab({
     key: string
     label: string
 }): JSX.Element {
-    const LinkComponent = useMemo(
-        () =>
-            ({ href }: { href: string }) => (
-                <Button
-                    color="inherit"
-                    href={href}
-                    startIcon={<IconComponent />}
-                    variant={isSelected ? "contained" : "text"}
-                >
-                    {label}
-                </Button>
-            ),
-        [IconComponent, isSelected, label],
-    )
-
     return (
         <Link href={href} legacyBehavior passHref>
-            <Tab LinkComponent={LinkComponent} />
+            <Button
+                aria-selected={isSelected}
+                role="tab"
+                startIcon={<IconComponent />}
+                sx={{ color: isSelected ? "text.primary.light" : "text.secondary" }}
+                variant={isSelected ? "contained" : "text"}
+            >
+                {label}
+            </Button>
         </Link>
     )
 }
@@ -73,6 +68,12 @@ function SiteTitle({ children }: { children: ReactNode }): JSX.Element {
     )
 }
 
+const darkTheme = createTheme({
+    palette: {
+        mode: "dark",
+    },
+})
+
 export function RootClientLayout({ children }: { children: React.ReactNode }): JSX.Element {
     const pathname = usePathname()
     const router = useRouter()
@@ -82,6 +83,7 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
             "/radiusd/logs": { label: "radiusd.log", icon: Notes },
             "/clients": { label: "NAS Clients", icon: WifiPassword },
             "/mpsks": { label: "Device MPSKs", icon: Password },
+            "/pki": { label: "PKI", icon: Lock },
         }),
         [],
     )
@@ -91,7 +93,7 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
         () =>
             Array.from(Object.entries(tabs)).map(([href, { label, icon }]) => (
                 <Box sx={{ flexGrow: 0 }}>
-                    <CustomTab href={href} icon={icon} isSelected={href === currentTab} key={href} label={label} />
+                    <TabButton href={href} icon={icon} isSelected={href === currentTab} key={href} label={label} />
                 </Box>
             )),
         [currentTab, tabs],
@@ -106,18 +108,23 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
 
     return (
         <QueryClientProvider client={queryClient}>
-            <AppBar color="default" position="sticky">
-                <Toolbar role="navigation" sx={{ gap: "1em" }} variant="dense">
-                    {tabNodes}
-                    <Box sx={{ display: "flex", flexGrow: 1, justifyContent: "end" }}>
-                        <SiteTitle>yonagi-web</SiteTitle>
-                    </Box>
-                    <Box sx={{ flexGrow: 0 }}>
-                        <ReloadButton />
-                    </Box>
-                </Toolbar>
-            </AppBar>
-            {children}
+            <ThemeProvider theme={darkTheme}>
+                <CssBaseline />
+                <Stack spacing={1}>
+                    <AppBar color="default" position="sticky">
+                        <Toolbar role="navigation" sx={{ gap: "1em" }} variant="dense">
+                            {tabNodes}
+                            <Box key="site-title" sx={{ display: "flex", flexGrow: 1, justifyContent: "end" }}>
+                                <SiteTitle>yonagi-web</SiteTitle>
+                            </Box>
+                            <Box key="reload" sx={{ flexGrow: 0 }}>
+                                <ReloadButton />
+                            </Box>
+                        </Toolbar>
+                    </AppBar>
+                    <Box>{children}</Box>
+                </Stack>
+            </ThemeProvider>
         </QueryClientProvider>
     )
 }
