@@ -42,7 +42,6 @@ function TabButton({
     href: string
     icon: SvgIconComponent
     isSelected: boolean
-    key: string
     label: string
 }): JSX.Element {
     return (
@@ -92,8 +91,8 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
     const tabNodes = useMemo(
         () =>
             Array.from(Object.entries(tabs)).map(([href, { label, icon }]) => (
-                <Box sx={{ flexGrow: 0 }}>
-                    <TabButton href={href} icon={icon} isSelected={href === currentTab} key={href} label={label} />
+                <Box key={href} sx={{ flexGrow: 0 }}>
+                    <TabButton href={href} icon={icon} isSelected={href === currentTab} label={label} />
                 </Box>
             )),
         [currentTab, tabs],

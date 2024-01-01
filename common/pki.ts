@@ -2,9 +2,20 @@ import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts"
 
+export const NonEmptyStringType = new t.Type<string, string, unknown>(
+    "NonEmptyString",
+    (u): u is string => typeof u === "string",
+    (u, c) =>
+        F.pipe(
+            t.string.validate(u, c),
+            E.chain((u) => (u.length > 0 ? t.success(u) : t.failure(u, c, "Cannot be empty"))),
+        ),
+    (a) => a,
+)
+
 export const RelativeDistinguishedNamesType = t.type({
-    commonName: t.string,
-    organizationName: t.string,
+    commonName: NonEmptyStringType,
+    organizationName: NonEmptyStringType,
 })
 
 export type RelativeDistinguishedNames = t.TypeOf<typeof RelativeDistinguishedNamesType>

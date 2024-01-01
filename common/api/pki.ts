@@ -1,10 +1,11 @@
 import * as t from "io-ts"
 
-import { RelativeDistinguishedNamesType } from "../pki"
+import { PositiveIntegerFromString } from "../common"
+import { RelativeDistinguishedNamesType, SerialNumberStringType } from "../pki"
 
 export const CertificateSummaryType = t.type({
     issuer: RelativeDistinguishedNamesType,
-    hexSerialNumber: t.string,
+    hexSerialNumber: SerialNumberStringType,
     publicKey: t.string,
     signature: t.string,
     subject: RelativeDistinguishedNamesType,
@@ -24,5 +25,7 @@ export type GetPkiSummaryResponse = t.TypeOf<typeof GetPkiSummaryResponse>
 
 export const CreateCertificateRequestType = t.type({
     subject: RelativeDistinguishedNamesType,
-    validity: t.number,
+    validity: PositiveIntegerFromString,
 })
+
+export type CreateCertificateRequest = t.TypeOf<typeof CreateCertificateRequestType>

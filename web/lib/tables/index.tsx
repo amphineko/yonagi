@@ -7,8 +7,8 @@ import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import { PathReporter } from "io-ts/lib/PathReporter"
 import * as t from "io-ts/lib/index"
-import { useMemo, useReducer, useState } from "react"
-import { useMutation, useQueryClient } from "react-query"
+import { useMemo, useState } from "react"
+import { useMutation } from "react-query"
 
 export type ElementOfArray<T extends readonly unknown[]> = T extends readonly (infer ET)[] ? ET : never
 
@@ -172,23 +172,4 @@ export function MutableTableRow<A, RT extends "create" | "update">(props: Mutabl
             </TableCell>
         </TableRow>
     )
-}
-
-function useNonce() {
-    const [nonce, increaseNonce] = useReducer((nonce: number) => nonce + 1, 0)
-    return { nonce, increaseNonce }
-}
-
-export function useTableHelpers(queryKey: readonly unknown[]) {
-    const { nonce, increaseNonce } = useNonce()
-    const queryClient = useQueryClient()
-
-    return {
-        invalidate: async () => {
-            await queryClient.invalidateQueries({ queryKey })
-            increaseNonce()
-        },
-        nonce,
-        queryClient,
-    }
 }

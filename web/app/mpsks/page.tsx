@@ -12,7 +12,8 @@ import { useMemo } from "react"
 import { useQuery } from "react-query"
 
 import { createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
-import { MutableTableCell, MutableTableRow, useTableHelpers } from "../../lib/tables"
+import { useQueryHelpers } from "../../lib/client"
+import { MutableTableCell, MutableTableRow } from "../../lib/tables"
 
 const MPSK_QUERY_KEY = ["mpsks"]
 
@@ -45,7 +46,7 @@ function MpskTable(): JSX.Element {
         MPSK_QUERY_KEY,
         async () => await getAllMpsks(),
     )
-    const { invalidate, nonce } = useTableHelpers(MPSK_QUERY_KEY)
+    const { invalidate, nonce } = useQueryHelpers(MPSK_QUERY_KEY)
 
     const tableItems = useMemo(() => {
         if (mpsks === undefined) {

@@ -137,3 +137,14 @@ export const IpNetworkFromStringType = new t.Type<IpNetwork, string, unknown>(
 )
 
 export type IpNetworkFromString = t.TypeOf<typeof IpNetworkFromStringType>
+
+export const PositiveIntegerFromString = new t.Type<number, string, unknown>(
+    "PositiveIntegerFromString",
+    (u): u is number => typeof u === "number",
+    (u, c) =>
+        F.pipe(
+            t.string.validate(u, c),
+            E.flatMap((s) => (/^\d+$/.test(s) ? t.success(parseInt(s, 10)) : t.failure(u, c))),
+        ),
+    (n) => n.toString(),
+)

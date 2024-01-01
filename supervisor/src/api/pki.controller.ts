@@ -11,7 +11,12 @@ import {
     UseInterceptors,
     forwardRef,
 } from "@nestjs/common"
-import { CertificateSummary, CreateCertificateRequestType, GetPkiSummaryResponse } from "@yonagi/common/api/pki"
+import {
+    CertificateSummary,
+    CertificateSummaryType,
+    CreateCertificateRequestType,
+    GetPkiSummaryResponse,
+} from "@yonagi/common/api/pki"
 import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -44,6 +49,7 @@ export class PkiController {
     }
 
     @Post("/ca")
+    @EncodeResponseWith(CertificateSummaryType)
     async createCertificateAuthority(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createCertificateAuthority(subject, validity),
@@ -51,6 +57,7 @@ export class PkiController {
     }
 
     @Delete("/ca/:serial")
+    @EncodeResponseWith(t.undefined)
     async deleteCertificateAuthority(@Param("serial") u: unknown): Promise<void> {
         await this.deleteCertificateBySerial(
             u,
@@ -60,6 +67,7 @@ export class PkiController {
     }
 
     @Post("/server")
+    @EncodeResponseWith(CertificateSummaryType)
     async createServerCertificate(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createServerCertificate(subject, validity),
@@ -67,6 +75,7 @@ export class PkiController {
     }
 
     @Delete("/server/:serial")
+    @EncodeResponseWith(t.undefined)
     async deleteServerCertificate(@Param("serial") u: unknown): Promise<void> {
         await this.deleteCertificateBySerial(
             u,
@@ -76,6 +85,7 @@ export class PkiController {
     }
 
     @Post("/clients")
+    @EncodeResponseWith(CertificateSummaryType)
     async createClientCertificate(@Body() body: unknown): Promise<CertificateSummary> {
         return await this.createCertificateFromRequest(body, CreateCertificateRequestType, ({ subject, validity }) =>
             this.pki.createClientCertificate(subject, validity),
@@ -83,6 +93,7 @@ export class PkiController {
     }
 
     @Delete("/clients/:serial")
+    @EncodeResponseWith(t.undefined)
     async deleteClientCertificate(@Param("serial") serial: unknown): Promise<void> {
         await this.deleteCertificateBySerial(
             serial,

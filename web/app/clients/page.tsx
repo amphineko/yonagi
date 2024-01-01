@@ -7,7 +7,8 @@ import { useMemo } from "react"
 import { useQuery } from "react-query"
 
 import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
-import { MutableTableCell, MutableTableRow, useTableHelpers } from "../../lib/tables"
+import { useQueryHelpers } from "../../lib/client"
+import { MutableTableCell, MutableTableRow } from "../../lib/tables"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
@@ -34,7 +35,7 @@ function tableCells(client: Partial<Client>, stage: (field: string, partial: Par
 
 function ClientTable(): JSX.Element {
     const { data: clients } = useQuery<ReadonlyMap<Name, Client>>(CLIENT_QUERY_KEY, async () => await getAllClients())
-    const { invalidate, nonce, queryClient } = useTableHelpers(CLIENT_QUERY_KEY)
+    const { invalidate, nonce, queryClient } = useQueryHelpers(CLIENT_QUERY_KEY)
 
     const tableItems = useMemo(() => {
         if (clients === undefined) {
