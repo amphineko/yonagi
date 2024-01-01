@@ -39,7 +39,8 @@
             -   [x] Certificate Issue
             -   [x] CA/Server/Client CRUD
         -   [ ] Deployment
-            -   [ ] Export Certificate Bundles and Keys to Radiusd
+            -   [ ] Client Certificate Export (PKCS#12 with trust chain)
+            -   [ ] CA/Server/Client Deployment to Radiusd
     -   [ ] Radiusd
         -   [x] Child Process Management
     -   [ ] Storage
@@ -50,6 +51,8 @@
         -   [x] CRUD: Name/Phy Address/PSK
     -   [ ] Password/Certificate-based Authentication Dashboard
     -   [ ] PKI Dashboard
+        -   [x] CA/Server/Client Certificate Issue and Delete
+        -   [ ] Client Certificate Export (PKCS#12 with trust chain)
     -   [ ] NAS Client Dashboard
         -   [x] CRUD: Name/Allowed Subnet/Secret
     -   [x] Radiusd Dashboard
