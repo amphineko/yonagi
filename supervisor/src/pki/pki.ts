@@ -1,17 +1,25 @@
+import { writeFile } from "node:fs/promises"
+import { basename } from "node:path"
+
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import { KeyGenParams, RelativeDistinguishedNames } from "@yonagi/common/pki"
+import { pino } from "pino"
 import * as pkijs from "pkijs"
 
 import { CryptoEngineShim } from "./cryptoEngine"
 import {
+    exportCertificatePem,
     exportClientCertificateP12,
     exportPkiCertificateState,
+    exportPrivateKeyPem,
     getCertificateSerialAsHexString,
     importPkiCertificateState,
 } from "./exchange"
 import { CreateCertificateIssuer, createCertificate } from "./issue"
 import { PkiCertificateState, PkiState } from "./storage"
 import { Config } from "../config"
+
+const logger = pino({ name: `${basename(__dirname)}/${basename(__filename)}` })
 
 export class InvalidStateError extends Error {}
 
@@ -139,6 +147,11 @@ export class Pki {
 
     private keyParams: KeyGenParams
 
+    private deployPaths: {
+        ca: { cert: string }
+        server: { cert: string; privKey: string }
+    }
+
     constructor(
         @Inject(forwardRef(() => Config)) config: Config,
         @Inject(forwardRef(() => CryptoEngineShim)) private crypto: pkijs.ICryptoEngine,
@@ -146,6 +159,7 @@ export class Pki {
     ) {
         this.certHashAlg = config.pkiMode.certHashAlg
         this.keyParams = config.pkiMode.key
+        this.deployPaths = config.pkiOutputPath
     }
 
     async createCertificateAuthority(
@@ -280,5 +294,32 @@ export class Pki {
 
     async deleteClientCertificate(serial: string): Promise<void> {
         await this.pkiState.setClientCertificate(serial, undefined)
+    }
+
+    async deployToRadiusd(): Promise<boolean> {
+        const ca = await this.getCertificateAuthority()
+        if (!ca) {
+            logger.warn("Cannot deploy PKI to radiusd: CA not found")
+            return false
+        }
+
+        const server = await this.getServerCertificate()
+        if (!server) {
+            logger.warn("Cannot deploy PKI to radiusd: Server certificate not found")
+            return false
+        }
+        if (!server.privKey) {
+            throw new InvalidStateError("Unexpected missing private key for server certificate")
+        }
+
+        await Promise.all([
+            writeFile(this.deployPaths.ca.cert, exportCertificatePem(ca.cert)),
+            writeFile(this.deployPaths.server.cert, exportCertificatePem(server.cert)),
+            exportPrivateKeyPem(server.privKey, this.crypto).then((pem) =>
+                writeFile(this.deployPaths.server.privKey, pem),
+            ),
+        ])
+
+        return true
     }
 }

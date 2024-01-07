@@ -9,9 +9,16 @@ export class Config {
 
     public readonly outputDirPath: string
 
+    public readonly raddbDirPath: string
+
     constructor() {
         this.dataDirPath = process.env.SUPERVISOR_DATA_DIR ?? "/data"
         this.outputDirPath = process.env.SUPERVISOR_OUTPUT_DIR ?? "/var/run"
+        this.raddbDirPath = process.env.SUPERVISOR_RADDB_DIR ?? "/etc/freeradius/3.0"
+    }
+
+    public get authorizedMpsksFilePath(): string {
+        return `${this.dataDirPath}/authorized_mpsks.json`
     }
 
     public get clientsFilePath(): string {
@@ -26,23 +33,24 @@ export class Config {
         return `${this.pkiPath}/state.json`
     }
 
-    public get clientsOutputPath(): string {
-        return `${this.outputDirPath}/clients.conf`
-    }
-
-    public get authorizedMpsksFilePath(): string {
-        return `${this.dataDirPath}/authorized_mpsks.json`
-    }
-
-    public get authorizedMpsksOutputPath(): string {
-        return `${this.outputDirPath}/authorized_mpsks`
-    }
-
     public get radiusdPath(): string {
         return process.env.SUPERVISOR_RADIUSD ?? "/usr/sbin/radiusd"
     }
 
+    public get pkiOutputPath(): { ca: { cert: string }; server: { cert: string; privKey: string } } {
+        return {
+            ca: {
+                cert: `${this.outputDirPath}/ca.pem`,
+            },
+            server: {
+                cert: `${this.outputDirPath}/server.pem`,
+                privKey: `${this.outputDirPath}/server.key`,
+            },
+        }
+    }
+
     public get pkiMode(): PkiMode {
+        // TODO: make configurable from UI or env
         return {
             certHashAlg: "SHA-256",
             key: {

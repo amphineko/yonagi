@@ -224,3 +224,35 @@ export async function exportClientCertificateP12(
 
     return pkcs12.toSchema().toBER(false)
 }
+
+function formatPemFromBuffer(buffer: Buffer, label: string, comments: string[] = []): string {
+    const hex = buffer.toString("base64")
+    const lines = hex.match(/.{1,64}/g) ?? []
+    return [
+        ...comments, // RFC 7468 5.2
+        `-----BEGIN ${label}-----`,
+        ...lines,
+        `-----END ${label}-----`,
+    ].join("\r\n")
+}
+
+export function exportCertificatePem(cert: pkijs.Certificate): string {
+    const subject = parsePkijsRdn(cert.subject)
+    const issuer = parsePkijsRdn(cert.issuer)
+    const notBefore = new Date(cert.notBefore.value.getTime()).toISOString()
+    const notAfter = new Date(cert.notAfter.value.getTime()).toISOString()
+    const comments = [
+        `Subject: CN=${subject.commonName}, O=${subject.organizationName}`,
+        `Issuer: CN=${issuer.commonName}, O=${issuer.organizationName}`,
+        `Validity: from ${notBefore} to ${notAfter}`,
+    ]
+
+    const certBer = cert.toSchema(true).toBER(false)
+    return formatPemFromBuffer(Buffer.from(certBer), "CERTIFICATE", comments)
+}
+
+export async function exportPrivateKeyPem(privKey: CryptoKey, crypto: pkijs.ICryptoEngine): Promise<string> {
+    const comments = [`Algorithm: ${privKey.algorithm.name}`]
+    const pkcs8 = await crypto.exportKey("pkcs8", privKey)
+    return formatPemFromBuffer(Buffer.from(pkcs8), "PRIVATE KEY", comments)
+}

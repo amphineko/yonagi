@@ -3,10 +3,11 @@ import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardR
 import { Radiusd } from "./radiusd"
 import { ClientStorage, MPSKStorage } from "./storages"
 import { ConfigModule } from "../config"
+import { PkiModule } from "../pki/module"
 
 @Module({
     exports: [ClientStorage, MPSKStorage, Radiusd],
-    imports: [ConfigModule],
+    imports: [ConfigModule, PkiModule],
     providers: [ClientStorage, MPSKStorage, Radiusd],
 })
 export class RadiusdModule implements OnApplicationBootstrap, OnApplicationShutdown {

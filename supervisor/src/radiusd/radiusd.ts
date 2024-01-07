@@ -7,8 +7,8 @@ import pino from "pino"
 
 import { ClientStorage, MPSKStorage } from "./storages"
 import { Config } from "../config"
-import { generateAuthorizedMpsksFile } from "../configs/authorizedMpsks"
-import { generateClientsFile } from "../configs/clients"
+import { generateConfigs } from "../configs"
+import { Pki } from "../pki/pki"
 
 const logger = pino({ name: `${basename(__dirname)}/${basename(__filename)}` })
 
@@ -33,8 +33,9 @@ class CircularBuffer {
 export class Radiusd {
     constructor(
         @Inject(forwardRef(() => ClientStorage)) private clientStorage: ClientStorage,
-        @Inject(forwardRef(() => MPSKStorage)) private mpskStorage: MPSKStorage,
         @Inject(forwardRef(() => Config)) private config: Config,
+        @Inject(forwardRef(() => MPSKStorage)) private mpskStorage: MPSKStorage,
+        @Inject(forwardRef(() => Pki)) private pki: Pki,
     ) {
         this._buffer = new CircularBuffer(config.logRetention)
     }
@@ -54,10 +55,13 @@ export class Radiusd {
     async _regenerateFiles(): Promise<void> {
         const clients = await this.clientStorage.all()
         const mpsks = await this.mpskStorage.all()
-        await Promise.all([
-            generateAuthorizedMpsksFile(mpsks, this.config.authorizedMpsksOutputPath),
-            generateClientsFile(clients, this.config.clientsOutputPath),
-        ])
+        const pkiDeployed = await this.pki.deployToRadiusd()
+        await generateConfigs({
+            clients,
+            pki: pkiDeployed ? this.config.pkiOutputPath : undefined,
+            mpsks,
+            raddbPath: this.config.raddbDirPath,
+        })
     }
 
     async start(): Promise<void> {
