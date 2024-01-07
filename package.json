@@ -1,15 +1,14 @@
 {
     "private": true,
     "workspaces": [
-        "common",
-        "supervisor",
-        "web"
+        "packages/common",
+        "packages/supervisor",
+        "packages/web"
     ],
     "dependencies": {
         "@types/node": "^20.10.3",
         "fp-ts": "^2.16.1",
         "io-ts": "^2.2.21",
-        "ts-node": "^10.9.1",
         "typescript": "^5.3.3"
     },
     "devDependencies": {
@@ -25,6 +24,9 @@
         "prettier": "^3.1.0"
     },
     "scripts": {
-        "lint": "eslint --ext .ts,.tsx . --fix"
+        "lint": "eslint --ext .ts,.tsx . --fix",
+        "web:build": "yarn workspace @yonagi/web build",
+        "web:dev": "yarn workspace @yonagi/web dev",
+        "web:start": "yarn workspace @yonagi/web start"
     }
 }
