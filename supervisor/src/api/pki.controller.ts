@@ -15,6 +15,7 @@ import {
     CertificateSummary,
     CertificateSummaryType,
     CreateCertificateRequestType,
+    ExportClientCertificateP12RequestType,
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
 import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
@@ -100,6 +101,25 @@ export class PkiController {
             (serial) => this.pki.getClientCertificate(serial),
             (serial) => this.pki.deleteClientCertificate(serial),
         )
+    }
+
+    @Post("/clients/:serial/p12")
+    @EncodeResponseWith(t.string)
+    async exportClientCertificateP12(@Param("serial") serial: unknown, @Body() body: unknown): Promise<string> {
+        return await F.pipe(
+            E.Do,
+            E.bind("serial", () => SerialNumberStringType.decode(serial)),
+            E.bind("password", () => ExportClientCertificateP12RequestType.decode(body)),
+            E.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
+            TE.fromEither,
+            TE.flatMap(({ serial, password: { password } }) =>
+                TE.tryCatch(() => this.pki.exportClientCertificateP12(serial, password), E.toError),
+            ),
+            TE.map((p12) => Buffer.from(p12).toString("base64")),
+            TE.getOrElse((error) => {
+                throw error
+            }),
+        )()
     }
 
     private createCertificateFromRequest<T>(

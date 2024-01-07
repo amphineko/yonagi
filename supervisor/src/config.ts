@@ -1,4 +1,5 @@
 import { Injectable, Module } from "@nestjs/common"
+import { PkiMode } from "@yonagi/common/pki"
 
 @Injectable()
 export class Config {
@@ -39,6 +40,16 @@ export class Config {
 
     public get radiusdPath(): string {
         return process.env.SUPERVISOR_RADIUSD ?? "/usr/sbin/radiusd"
+    }
+
+    public get pkiMode(): PkiMode {
+        return {
+            certHashAlg: "SHA-256",
+            key: {
+                name: "ECDSA",
+                namedCurve: "P-384",
+            } as EcKeyGenParams,
+        }
     }
 }
 

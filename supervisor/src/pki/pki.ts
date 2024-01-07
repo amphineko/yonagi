@@ -1,10 +1,17 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { RelativeDistinguishedNames } from "@yonagi/common/pki"
+import { KeyGenParams, RelativeDistinguishedNames } from "@yonagi/common/pki"
 import * as pkijs from "pkijs"
 
-import { exportPkiCertificateState, getCertificateSerialAsHexString, importPkiCertificateState } from "./exchange"
+import { CryptoEngineShim } from "./cryptoEngine"
+import {
+    exportClientCertificateP12,
+    exportPkiCertificateState,
+    getCertificateSerialAsHexString,
+    importPkiCertificateState,
+} from "./exchange"
 import { CreateCertificateIssuer, createCertificate } from "./issue"
 import { PkiCertificateState, PkiState } from "./storage"
+import { Config } from "../config"
 
 export class InvalidStateError extends Error {}
 
@@ -30,11 +37,15 @@ export class CertificateAuthority extends Certificate {
     static async createAsync(
         subject: RelativeDistinguishedNames,
         validity: number,
+        keyParams: KeyGenParams,
+        hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<CertificateAuthority> {
         const { cert, privKey: privateKey } = await createCertificate({
             crypto,
+            hashAlg,
             isCa: true,
+            keyParams,
             selfSigned: true,
             subject,
             keyUsages: {
@@ -58,6 +69,8 @@ export class ServerCertificate extends Certificate {
         subject: RelativeDistinguishedNames,
         issuer: CreateCertificateIssuer,
         validity: number,
+        keyParams: KeyGenParams,
+        hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<ServerCertificate> {
         const { cert, privKey: privateKey } = await createCertificate({
@@ -66,7 +79,9 @@ export class ServerCertificate extends Certificate {
                 serverAuth: true,
                 eapOverLan: true,
             },
+            hashAlg,
             issuer,
+            keyParams,
             subject,
             keyUsages: {
                 digitalSignature: true,
@@ -89,6 +104,8 @@ export class ClientCertificate extends Certificate {
         subject: RelativeDistinguishedNames,
         issuer: CreateCertificateIssuer,
         validity: number,
+        keyParams: KeyGenParams,
+        hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<ClientCertificate> {
         const { cert, privKey: privateKey } = await createCertificate({
@@ -96,7 +113,9 @@ export class ClientCertificate extends Certificate {
             extendedKeyUsages: {
                 clientAuth: true,
             },
+            hashAlg,
             issuer,
+            keyParams,
             subject,
             keyUsages: {
                 digitalSignature: true,
@@ -116,10 +135,18 @@ export class ClientCertificate extends Certificate {
 
 @Injectable()
 export class Pki {
+    private certHashAlg: string
+
+    private keyParams: KeyGenParams
+
     constructor(
-        @Inject(forwardRef(() => pkijs.CryptoEngine)) private crypto: pkijs.ICryptoEngine,
+        @Inject(forwardRef(() => Config)) config: Config,
+        @Inject(forwardRef(() => CryptoEngineShim)) private crypto: pkijs.ICryptoEngine,
         @Inject(forwardRef(() => PkiState)) private pkiState: PkiState,
-    ) {}
+    ) {
+        this.certHashAlg = config.pkiMode.certHashAlg
+        this.keyParams = config.pkiMode.key
+    }
 
     async createCertificateAuthority(
         subject: RelativeDistinguishedNames,
@@ -129,7 +156,13 @@ export class Pki {
             throw new InvalidStateError("CA already exists")
         }
 
-        const ca = await CertificateAuthority.createAsync(subject, validity, this.crypto)
+        const ca = await CertificateAuthority.createAsync(
+            subject,
+            validity,
+            this.keyParams,
+            this.certHashAlg,
+            this.crypto,
+        )
         await this.pkiState.setCertificateAuthority(await ca.export(this.crypto))
         return ca
     }
@@ -168,6 +201,8 @@ export class Pki {
             subject,
             { cert: ca.cert, privKey: ca.privKey },
             validity,
+            this.keyParams,
+            this.certHashAlg,
             this.crypto,
         )
         await this.pkiState.setServerCertificate(await cert.export(this.crypto))
@@ -177,6 +212,20 @@ export class Pki {
     async getServerCertificate(): Promise<Nullable<ServerCertificate>> {
         const state = await this.pkiState.getServerCertificate()
         return state ? await ServerCertificate.fromPkiState(state, this.crypto) : null
+    }
+
+    async getRequiredServerCertificate<
+        RequirePrivKey extends boolean,
+        R = RequirePrivKey extends true ? FieldRequired<ServerCertificate, "privKey"> : ServerCertificate,
+    >(privKey?: RequirePrivKey): Promise<R> {
+        const server = await this.getServerCertificate()
+        if (!server) {
+            throw new InvalidStateError("Server certificate not found")
+        }
+        if (privKey && !server.privKey) {
+            throw new InvalidStateError("Server private key not found")
+        }
+        return server as R
     }
 
     async deleteServerCertificate(): Promise<void> {
@@ -189,6 +238,8 @@ export class Pki {
             subject,
             { cert: ca.cert, privKey: ca.privKey },
             validity,
+            this.keyParams,
+            this.certHashAlg,
             this.crypto,
         )
         await this.pkiState.setClientCertificate(
@@ -196,6 +247,23 @@ export class Pki {
             await cert.export(this.crypto),
         )
         return cert
+    }
+
+    async exportClientCertificateP12(serial: string, p12Password: string): Promise<ArrayBuffer> {
+        const client = await this.getClientCertificate(serial)
+        if (!client?.privKey) {
+            throw new InvalidStateError("Client certificate and/or private key not found")
+        }
+
+        const ca = await this.getRequiredCertificateAuthority(false)
+        const server = await this.getRequiredServerCertificate(false)
+        return await exportClientCertificateP12(
+            client.cert,
+            client.privKey,
+            [ca.cert, server.cert],
+            p12Password,
+            this.crypto,
+        )
     }
 
     async getClientCertificate(serial: string): Promise<Nullable<ClientCertificate>> {

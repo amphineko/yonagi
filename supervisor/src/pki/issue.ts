@@ -2,15 +2,7 @@ import { RelativeDistinguishedNames } from "@yonagi/common/pki"
 import * as asn1js from "asn1js"
 import * as pkijs from "pkijs"
 
-import {
-    OID_ClientAuth,
-    OID_CommonName,
-    OID_KP_EapOverLan,
-    OID_OrganizationName,
-    OID_ServerAuth,
-    SUITE_B_192_HASH_ALG,
-    SUITE_B_192_SIGN_ALG,
-} from "./consts"
+import { OID_ClientAuth, OID_CommonName, OID_KP_EapOverLan, OID_OrganizationName, OID_ServerAuth } from "./consts"
 
 export interface CreateCertificateIssuer {
     cert: pkijs.Certificate
@@ -20,7 +12,9 @@ export interface CreateCertificateIssuer {
 type CreateCertificateProps = {
     crypto: pkijs.ICryptoEngine
     extendedKeyUsages?: ExtendedKeyUsages
+    hashAlg: string
     isCa?: boolean
+    keyParams: EcKeyGenParams | RsaHashedKeyGenParams
     subject: RelativeDistinguishedNames
     keyUsages: KeyUsages
     validityDays: number
@@ -81,7 +75,7 @@ export function createExtendedKeyUsageExt(extendedKeyUsages: ExtendedKeyUsages):
     })
 }
 
-export function createKeyUsageExt(keyUsages: KeyUsages): pkijs.Extension {
+export function createKeyUsageBitString(keyUsages: KeyUsages): asn1js.BitString {
     const flags = new Uint8Array([0x00])
     flags[0] |= keyUsages.digitalSignature ? 0x80 : 0x00
     flags[0] |= keyUsages.contentCommitment ? 0x40 : 0x00
@@ -89,9 +83,13 @@ export function createKeyUsageExt(keyUsages: KeyUsages): pkijs.Extension {
     flags[0] |= keyUsages.keyCertSign ? 0x04 : 0x00
     flags[0] |= keyUsages.cRLSign ? 0x02 : 0x00
 
-    const keyUsage = new asn1js.BitString({
+    return new asn1js.BitString({
         valueHex: flags,
     })
+}
+
+export function createKeyUsageExt(keyUsages: KeyUsages): pkijs.Extension {
+    const keyUsage = createKeyUsageBitString(keyUsages)
     return new pkijs.Extension({
         extnID: pkijs.id_KeyUsage,
         critical: true,
@@ -115,18 +113,16 @@ export function createPkijsRdn(rdn: RelativeDistinguishedNames): pkijs.RelativeD
     })
 }
 
-export async function createSuiteBKeyPair(crypto: pkijs.ICryptoEngine): Promise<CryptoKeyPair> {
-    return await crypto.generateKey(SUITE_B_192_SIGN_ALG, true, ["sign", "verify"])
-}
-
 export async function createCertificate({
     crypto,
     extendedKeyUsages,
+    hashAlg,
     isCa,
     issuer,
+    keyUsages: subjectKeyUsages,
+    keyParams,
     selfSigned,
     subject,
-    keyUsages: subjectKeyUsages,
     validityDays,
 }: CreateCertificateProps): Promise<CreateCertificateResult> {
     const now = new Date()
@@ -141,15 +137,15 @@ export async function createCertificate({
     cert.subject = createPkijsRdn(subject)
     cert.version = 0x02
 
-    const { privateKey, publicKey } = await createSuiteBKeyPair(crypto)
+    const { privateKey, publicKey } = await crypto.generateKey(keyParams, true, ["sign", "verify"])
     await cert.subjectPublicKeyInfo.importKey(publicKey, crypto)
 
     if (selfSigned) {
         cert.issuer = cert.subject
-        await cert.sign(privateKey, SUITE_B_192_HASH_ALG, crypto)
+        await cert.sign(privateKey, hashAlg, crypto)
     } else {
         cert.issuer = issuer.cert.subject
-        await cert.sign(issuer.privKey, SUITE_B_192_HASH_ALG, crypto)
+        await cert.sign(issuer.privKey, hashAlg, crypto)
     }
 
     return { cert, privKey: privateKey }
