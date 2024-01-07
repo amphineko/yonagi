@@ -2,4 +2,4 @@ set -ex
 
 cd "$(dirname "$(readlink -f "$0")")/../supervisor"
 
-yarn ts-node src/main.ts | yarn pino-pretty
+NODE_OPTIONS=--openssl-legacy-provider yarn ts-node src/main.ts | yarn pino-pretty
