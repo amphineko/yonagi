@@ -73,3 +73,14 @@
     -   [x] Migrate away from Fluent UI to candidates:
         -   ~~Base UI~~
         -   **MUI** (migrated)
+
+## Dependencies
+
+-   [fp-ts](https://github.com/gcanti/fp-ts/)/[io-ts](https://github.com/gcanti/io-ts/): Functional Programming and Type-Safe Serialization/Vaidation
+-   [NestJS](https://github.com/nestjs/nest): Dependency Injection and API Server
+-   [next.js](https://github.com/vercel/next.js): The React Frontend
+-   [PKI.js](https://github.com/PeculiarVentures/PKI.js): X.509 Certificate and PKCS #12 Support
+
+## License
+
+MIT
