@@ -4,67 +4,75 @@ import * as F from "fp-ts/lib/function"
 import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 
-export function deleteEndpoint<T extends string>(url: T): Promise<void> {
-    return F.pipe(
-        TE.tryCatch(() => fetch(`http://localhost:8000/${url}`, { method: "DELETE", cache: "no-cache" }), E.toError),
-        TE.filterOrElse(
-            (response) => response.status === 200,
-            (response) => new Error(`Unexpected status code: ${response.status}`),
-        ),
-        TE.map(() => undefined),
-        TE.getOrElse((error) => {
-            throw error
-        }),
-    )()
+export function deleteEndpoint<T extends string>(endpoint: T): Promise<void> {
+    return requestTypedEndpoint({
+        endpoint,
+        method: "DELETE",
+    })
 }
 
-export function getTypedEndpoint<A, O>(dataType: t.Type<A, O>, url: string): Promise<A> {
+export async function getTypedEndpoint<A>(responseDataType: t.Decoder<unknown, A>, endpoint: string): Promise<A> {
+    return await requestTypedEndpoint({
+        endpoint,
+        method: "GET",
+        responseDataType,
+    })
+}
+
+export async function postTypedEndpoint<A, B>(
+    responseDataType: t.Decoder<unknown, A>,
+    requestBodyType: t.Encoder<B, unknown>,
+    endpoint: string,
+    body: B,
+): Promise<A> {
+    return await requestTypedEndpoint({
+        body,
+        endpoint,
+        method: "POST",
+        requestBodyType,
+        responseDataType,
+    })
+}
+
+async function requestTypedEndpoint<A, B>({
+    body,
+    endpoint,
+    method,
+    requestBodyType,
+    responseDataType,
+}: {
+    body?: B
+    endpoint: string
+    method: "GET" | "POST" | "DELETE"
+    requestBodyType?: t.Encoder<B, unknown>
+    responseDataType?: t.Decoder<unknown, A>
+}): Promise<A> {
+    const requestInit: RequestInit = {
+        cache: "no-cache",
+        method,
+    }
+    if (body !== undefined && requestBodyType !== undefined) {
+        requestInit.body = JSON.stringify(requestBodyType.encode(body))
+        requestInit.headers = {
+            "Content-Type": "application/json",
+        }
+    } else if ((body !== undefined) !== (requestBodyType !== undefined)) {
+        throw new Error("body and requestBodyType must be both defined")
+    }
+
     const responseType = t.type({
+        data: (responseDataType ?? t.any) as t.Type<A>,
         statusCode: t.literal(200),
-        data: dataType,
+    })
+    const errorType = t.type({
+        statusCode: t.number,
+        message: t.string,
     })
 
-    return F.pipe(
-        TE.tryCatch(
-            () => fetch(`http://localhost:8000/${url}`, { cache: "no-cache" }).then((response) => response.json()),
-            E.toError,
-        ),
-        TE.flatMapEither(
-            F.flow(
-                (response) => responseType.decode(response),
-                E.mapLeft((left) => new Error(PR.failure(left).join("\n"))),
-            ),
-        ),
-        TE.map((response) => response.data),
-        TE.getOrElse((error) => {
-            throw error
-        }),
-    )()
-}
-
-export async function postTypedEndpoint<I, R>(
-    input: I,
-    endpoint: string,
-    inputType: t.Encoder<I, unknown>,
-    outputType: t.Type<R>,
-): Promise<R> {
-    const responseType = t.type({ statusCode: t.literal(200), data: outputType })
-    const errorType = t.type({ statusCode: t.number, message: t.string })
     return await F.pipe(
         TE.Do,
         TE.bind("response", () =>
-            TE.tryCatch(
-                () =>
-                    fetch(`http://localhost:8000/${endpoint}`, {
-                        method: "POST",
-                        cache: "no-cache",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(inputType.encode(input)),
-                    }),
-                E.toError,
-            ),
+            TE.tryCatch(() => fetch(`http://localhost:8000/${endpoint}`, requestInit), E.toError),
         ),
         TE.bind("json", ({ response }) => TE.tryCatch(() => response.json(), E.toError)),
         TE.flatMap(({ response, json }) =>
@@ -74,7 +82,7 @@ export async function postTypedEndpoint<I, R>(
                       F.pipe(
                           errorType.decode(json),
                           E.fold(
-                              (left) => E.left(new Error(PR.failure(left).join("\n"))),
+                              (left) => E.left(new Error("Cannot decode error: " + PR.failure(left).join("\n"))),
                               (right) => E.left(new Error(right.message)),
                           ),
                       ),
@@ -83,7 +91,7 @@ export async function postTypedEndpoint<I, R>(
         TE.flatMapEither(
             F.flow(
                 (response) => responseType.decode(response),
-                E.mapLeft((left) => new Error(PR.failure(left).join("\n"))),
+                E.mapLeft((left) => new Error("Cannot decode response: " + PR.failure(left).join("\n"))),
             ),
         ),
         TE.map((response) => response.data),

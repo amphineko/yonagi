@@ -1,6 +1,5 @@
 import * as t from "io-ts"
 
-import { PositiveIntegerFromString } from "../common"
 import { RelativeDistinguishedNamesType, SerialNumberStringType } from "../pki"
 
 export const CertificateSummaryType = t.type({
@@ -25,7 +24,11 @@ export type GetPkiSummaryResponse = t.TypeOf<typeof GetPkiSummaryResponse>
 
 export const CreateCertificateRequestType = t.type({
     subject: RelativeDistinguishedNamesType,
-    validity: PositiveIntegerFromString,
+    validity: t.number,
 })
 
 export type CreateCertificateRequest = t.TypeOf<typeof CreateCertificateRequestType>
+
+export const ExportClientCertificateP12RequestType = t.type({
+    password: t.string,
+})

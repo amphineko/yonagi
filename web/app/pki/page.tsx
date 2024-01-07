@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle, Dangerous, Delete, DeleteForever, ExpandMore } from "@mui/icons-material"
+import { CheckCircle, Dangerous, Delete, DeleteForever, Download, ExpandMore } from "@mui/icons-material"
 import {
     Accordion,
     AccordionDetails,
@@ -34,6 +34,7 @@ import {
     deleteCertificateAuthority,
     deleteClientCertificate,
     deleteServerCertificate,
+    exportClientCertificateP12,
     getPkiSummary,
 } from "./actions"
 import { useNonce, useQueryHelpers } from "../../lib/client"
@@ -88,16 +89,45 @@ function CertificateDetailCell({ children, label }: { children: React.ReactNode;
 function CertificateDisplayAccordionDetails({
     cert,
     delete: submitDelete,
+    downloadable,
 }: {
     cert: CertificateSummary
     delete: (serial: SerialNumberString) => Promise<unknown>
-    downloadHref?: string
+    downloadable?: boolean
 }) {
     const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
     const { isLoading: isDeleting, mutate: mutateDelete } = useMutation({
         mutationFn: async () => await submitDelete(cert.hexSerialNumber),
         mutationKey: ["pki", "delete", cert.hexSerialNumber],
         onSettled: invalidate,
+    })
+    const {
+        data,
+        error: exportError,
+        isLoading: isExporting,
+        refetch: download,
+    } = useQuery({
+        enabled: false,
+        queryFn: async () => {
+            let blobUrl: string
+            if (!data) {
+                const base64 = await exportClientCertificateP12(cert.hexSerialNumber, "neko")
+                const buffer = Buffer.from(base64, "base64")
+                const blob = new Blob([buffer], { type: "application/x-pkcs12" })
+                blobUrl = URL.createObjectURL(blob)
+            } else {
+                blobUrl = data
+            }
+
+            const a = document.createElement("a")
+            a.href = blobUrl
+            a.download = `${cert.hexSerialNumber}.p12`
+            a.click()
+
+            return blobUrl
+        },
+        queryKey: ["pki", "download", cert.hexSerialNumber],
+        retry: false,
     })
     const [deletePopoverAnchor, setDeletePopoverAnchor] = useState<HTMLElement | null>(null)
 
@@ -133,6 +163,21 @@ function CertificateDisplayAccordionDetails({
                     >
                         Delete
                     </Button>
+                    {downloadable && (
+                        <Button
+                            color="primary"
+                            disabled={isExporting}
+                            onClick={() => {
+                                download().catch(() => {
+                                    /* */
+                                })
+                            }}
+                            startIcon={isExporting ? <CircularProgress /> : exportError ? <Dangerous /> : <Download />}
+                            variant="contained"
+                        >
+                            Download
+                        </Button>
+                    )}
                 </Stack>
             </Stack>
             <Popover
@@ -171,7 +216,6 @@ function CertificateCreateAccordionDetails({
     create: submitCreate,
 }: {
     create: (form: CreateCertificateRequest) => Promise<unknown>
-    downloadHref?: string
 }) {
     const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
     const { isLoading: isCreating, mutate: mutateCreate } = useMutation<unknown, unknown, CreateCertificateRequest>({
@@ -250,7 +294,7 @@ function CertificateAccordion(
         | {
               cert?: CertificateSummary
               delete: (serial: SerialNumberString) => Promise<unknown>
-              downloadHref?: string
+              downloadable?: boolean
           }
         | {
               cert?: never
@@ -281,7 +325,7 @@ function CertificateAccordion(
                 <CertificateDisplayAccordionDetails
                     cert={props.cert}
                     delete={(serial) => props.delete(serial)}
-                    downloadHref={props.downloadHref}
+                    downloadable={props.downloadable}
                 />
             ) : props.create ? (
                 <CertificateCreateAccordionDetails create={props.create} />
@@ -340,6 +384,7 @@ export default function PkiDashboardPage() {
                     <CertificateAccordion
                         cert={clientCert}
                         delete={(serial) => deleteClientCertificate(serial)}
+                        downloadable
                         isLoading={!hasData}
                         key={clientCert.hexSerialNumber}
                         title="Client"
