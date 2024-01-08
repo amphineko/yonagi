@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+    supervisor:
+        image: "ghcr.io/amphineko/yonagi"
+        build:
+            context: "."
+            dockerfile: "Dockerfile"
+        command: ["/app/scripts/supervisor.sh"]
+        entrypoint: ["/bin/sh"]
+        environment:
+            LISTEN_PORT: "8000"
+            LISTEN_HOST: "0.0.0.0"
+        expose:
+            - "8000/tcp"
+        ports:
+            - "1812:1812/udp"
+        restart: "unless-stopped"
+        volumes:
+            - "./data:/data"
+    web:
+        image: "ghcr.io/amphineko/yonagi"
+        build:
+            context: "."
+            dockerfile: "Dockerfile"
+        command: ["web:start"]
+        entrypoint: ["/usr/local/bin/yarn"]
+        environment:
+            SUPERVISOR_HOST: "http://supervisor:8000"
+        depends_on:
+            - "supervisor"
+        ports:
+            - "3000:3000/tcp"
+        restart: "unless-stopped"
+        volumes:
+            - "./data:/data"
