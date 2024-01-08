@@ -1,7 +1,9 @@
 "use server"
 
+import * as t from "io-ts"
+
+import { postTypedEndpoint } from "../lib/actions"
+
 export async function reload(): Promise<void> {
-    await fetch(`http://localhost:8000/api/v1/radiusd/reload`, {
-        method: "POST",
-    })
+    await postTypedEndpoint(t.any, t.any, "api/v1/radiusd/reload", undefined)
 }

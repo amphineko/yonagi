@@ -1,11 +1,15 @@
+"use server"
+
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 
-export function deleteEndpoint<T extends string>(endpoint: T): Promise<void> {
-    return requestTypedEndpoint({
+const SUPERVISOR_HOST = process.env.SUPERVISOR_HOST ?? "localhost:8000"
+
+export async function deleteEndpoint<T extends string>(endpoint: T): Promise<void> {
+    await requestTypedEndpoint({
         endpoint,
         method: "DELETE",
     })
@@ -71,9 +75,7 @@ async function requestTypedEndpoint<A, B>({
 
     return await F.pipe(
         TE.Do,
-        TE.bind("response", () =>
-            TE.tryCatch(() => fetch(`http://localhost:8000/${endpoint}`, requestInit), E.toError),
-        ),
+        TE.bind("response", () => TE.tryCatch(() => fetch(`${SUPERVISOR_HOST}/${endpoint}`, requestInit), E.toError)),
         TE.bind("json", ({ response }) => TE.tryCatch(() => response.json(), E.toError)),
         TE.flatMap(({ response, json }) =>
             response.ok

@@ -1,25 +1,18 @@
 "use server"
 
 import { ListClientsResponseType } from "@yonagi/common/api/clients"
-import { Client } from "@yonagi/common/clients"
+import { Client, ClientType } from "@yonagi/common/clients"
 import { Name } from "@yonagi/common/common"
+import * as t from "io-ts"
 
-import { getTypedEndpoint } from "../../lib/actions"
+import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"
 
 export async function createOrUpdateByName(name: string, client: Client): Promise<void> {
-    await fetch(`http://localhost:8000/api/v1/clients/${name}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(client),
-    })
+    await postTypedEndpoint(t.any, ClientType, `api/v1/clients/${name}`, client)
 }
 
 export async function deleteByName(name: string): Promise<void> {
-    await fetch(`http://localhost:8000/api/v1/clients/${name}`, {
-        method: "DELETE",
-    })
+    await deleteEndpoint(`api/v1/clients/${name}`)
 }
 
 export async function getAllClients(): Promise<ReadonlyMap<Name, Client>> {
