@@ -25,22 +25,22 @@
         -   [x] Client (NAS) CRUD
         -   [x] MPSK CRUD
         -   [ ] Password/Certificate-based User CRUD
-        -   [ ] PKI CRUD
+        -   [x] PKI CRUD
         -   [x] Radiusd Log/Status
         -   [x] Radiusd Reload
     -   [ ] Configuration Generator/Renderer
         -   [x] Aruba/Cisco Multi Pre-Shared Key
         -   [ ] EAP-GTC/MSCHAPv2
-        -   [ ] EAP-TLS
+        -   [x] EAP-TLS
     -   [ ] PKI
         -   [ ] Certificate Authority
             -   [x] Self-Signed CA
             -   [ ] Existing CA/intermediate import
             -   [x] Certificate Issue
             -   [x] CA/Server/Client CRUD
-        -   [ ] Deployment
+        -   [x] Deployment
             -   [x] Client Certificate Export (PKCS#12 with trust chain)
-            -   [ ] CA/Server/Client Deployment to Radiusd
+            -   [x] CA/Server/Client Deployment to Radiusd
     -   [ ] Radiusd
         -   [x] Child Process Management
     -   [ ] Storage
@@ -53,6 +53,7 @@
     -   [ ] PKI Dashboard
         -   [x] CA/Server/Client Certificate Issue and Delete
         -   [x] Client Certificate Export (PKCS#12 with trust chain)
+            -   [ ] PKCS#12 Export Password Input
     -   [ ] NAS Client Dashboard
         -   [x] CRUD: Name/Allowed Subnet/Secret
     -   [x] Radiusd Dashboard
