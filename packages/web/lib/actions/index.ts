@@ -6,7 +6,7 @@ import * as F from "fp-ts/lib/function"
 import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 
-const SUPERVISOR_HOST = process.env.SUPERVISOR_HOST ?? "localhost:8000"
+const SUPERVISOR_HOST = process.env.SUPERVISOR_HOST ?? "http://localhost:8000"
 
 export async function deleteEndpoint<T extends string>(endpoint: T): Promise<void> {
     await requestTypedEndpoint({
