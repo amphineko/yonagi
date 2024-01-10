@@ -2,7 +2,8 @@
 	"name": "Dockerfile",
 	"build": {
 		"context": "..",
-		"dockerfile": "../Dockerfile"
+		"dockerfile": "../Dockerfile",
+		"target": "base"
 	},
 	"appPort": [
 		"3000:3000/tcp",

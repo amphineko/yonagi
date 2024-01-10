@@ -1,4 +1,4 @@
-FROM node:lts
+FROM node:lts AS base
 
 ARG RADDB=/etc/freeradius/3.0
 
@@ -26,17 +26,11 @@ COPY \
 
 WORKDIR /app
 
-COPY package.json yarn.lock /app/
-COPY ./packages/common/package.json /app/packages/common/
-COPY ./packages/supervisor/package.json /app/packages/supervisor/
-COPY ./packages/web/package.json /app/packages/web/
+COPY . /app/
+
+FROM base AS dist
 
 RUN \
     yarn install --frozen-lockfile --production && \
-    yarn cache clean
-
-COPY . /app/
-
-RUN \
+    yarn cache clean && \
     yarn web:build
-
