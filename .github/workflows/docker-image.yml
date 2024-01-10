@@ -28,10 +28,14 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
           tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=push
             type=sha
+            type=sha,format=long
 
       - name: setup qemu
         uses: docker/setup-qemu-action@v3.0.0
