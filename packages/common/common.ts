@@ -148,3 +148,14 @@ export const PositiveIntegerFromString = new t.Type<number, string, unknown>(
         ),
     (n) => n.toString(),
 )
+
+export const DateFromUnixTimestamp = new t.Type<Date, number, unknown>(
+    "DateFromUnixTimestamp",
+    (u): u is Date => u instanceof Date,
+    (u, c) =>
+        F.pipe(
+            t.number.validate(u, c),
+            E.map((n) => new Date(n * 1000)),
+        ),
+    (d) => Math.floor(d.getTime() / 1000),
+)

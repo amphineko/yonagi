@@ -43,6 +43,10 @@ class Process {
         return this._lastExitCode
     }
 
+    get lastRestartedAt(): Date | null {
+        return this._lastRestart
+    }
+
     get log(): string[] {
         return this._logBuffer.get()
     }
@@ -160,6 +164,14 @@ class Process {
 
 @Injectable()
 export class Radiusd {
+    public get lastExitCode(): number | null {
+        return this._process.lastExitCode
+    }
+
+    public get lastRestartedAt(): Date | null {
+        return this._process.lastRestartedAt
+    }
+
     public get log(): string[] {
         return this._process.log
     }
@@ -175,7 +187,7 @@ export class Radiusd {
         this._process = new Process(config.radiusdPath)
     }
 
-    async _regenerateFiles(): Promise<void> {
+    private async _regenerateFiles(): Promise<void> {
         const clients = await this.clientStorage.all()
         const mpsks = await this.mpskStorage.all()
         const pkiDeployed = await this.pki.deployToRadiusd()

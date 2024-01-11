@@ -1,8 +1,13 @@
 "use server"
 
+import { GetStatusResponse, GetStatusResponseType } from "@yonagi/common/api/radiusd"
 import * as t from "io-ts"
 
-import { postTypedEndpoint } from "../lib/actions"
+import { getTypedEndpoint, postTypedEndpoint } from "../lib/actions"
+
+export async function getStatus(): Promise<GetStatusResponse> {
+    return await getTypedEndpoint(GetStatusResponseType, "api/v1/radiusd/status")
+}
 
 export async function reload(): Promise<void> {
     await postTypedEndpoint(t.any, t.any, "api/v1/radiusd/reload", null)
