@@ -1,8 +1,8 @@
 ## Features/Supported Authentication Methods
 
 -   Aruba/Cisco Multi Pre-Shared Key
--   EAP-GTC
--   EAP-MSCHAPv2
+-   ~~EAP-GTC~~
+-   ~~EAP-MSCHAPv2~~
 -   EAP-TLS
 
 ## Project Structure
