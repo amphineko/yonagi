@@ -48,11 +48,16 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
                     
                     # mpsk
                     rewrite_calling_station_id
-                    authorized_mpsks {
-                        ok = return
+                    if (!EAP-Message) {
+                        authorized_mpsks
+                        if (ok) {
+                            update control {
+                                Auth-Type := Accept
+                            }
+                        }
+                    } else {
+                        ${eapAuthorize}
                     }
-                
-                    ${eapAuthorize}
                 }
                 
                 authenticate {
