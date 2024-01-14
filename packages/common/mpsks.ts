@@ -1,3 +1,5 @@
+import * as E from "fp-ts/lib/Either"
+import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
 
 const optional = <T extends t.Any>(type: T) => t.union([type, t.undefined])
@@ -13,8 +15,17 @@ export const CallingStationIdType = new t.Type<string, string, unknown>(
     "CallingStationId",
     // is string
     (u): u is string => typeof u === "string",
-    // match aa:bb:cc:dd:ee:ff and aa-bb-cc-dd-ee-ff
-    (u, c) => (typeof u === "string" && /^[0-9a-f]{2}(-[0-9a-f]{2}){5}$/.test(u) ? t.success(u) : t.failure(u, c)),
+    // match and normalize to aa-bb-cc-dd-ee-ff
+    (u, c) =>
+        F.pipe(
+            t.string.validate(u, c),
+            E.map((s) => s.replace(/[:-]/g, "-").toLowerCase().split("-")),
+            E.chain((a) =>
+                a.length === 6 && a.every((s) => /^[0-9a-f]{2}$/.test(s))
+                    ? E.right(a.join("-"))
+                    : t.failure("Input is not a valid MAC address", c),
+            ),
+        ),
     // normalize to aa-bb-cc-dd-ee-ff
     (a) => a.toLowerCase().replace(/[:-]/g, "-"),
 )

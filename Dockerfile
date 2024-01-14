@@ -10,7 +10,7 @@ ENV \
 
 RUN \
     apt-get update && \
-    apt-get install -y --no-install-recommends eapoltest freeradius freeradius-utils && \
+    apt-get install -y --no-install-recommends eapoltest freeradius freeradius-rest freeradius-utils && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

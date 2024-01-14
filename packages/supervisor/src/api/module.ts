@@ -5,12 +5,13 @@ import { RadiusClientController } from "./clients.controller"
 import { MPSKController } from "./mpsks.controller"
 import { PkiController } from "./pki.controller"
 import { RadiusdController } from "./radiusd.controller"
+import { RlmRestController } from "./rlm_rest"
 import { ConfigModule } from "../config"
 import { PkiModule } from "../pki/module"
 import { RadiusdModule } from "../radiusd/module"
 
 @Module({
-    controllers: [MPSKController, PkiController, RadiusClientController, RadiusdController],
+    controllers: [MPSKController, PkiController, RadiusClientController, RadiusdController, RlmRestController],
     imports: [ConfigModule, PkiModule, RadiusdModule],
     providers: [ResponseInterceptor],
 })

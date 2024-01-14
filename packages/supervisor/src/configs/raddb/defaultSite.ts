@@ -45,12 +45,12 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
                     filter_username
                     filter_password
                     preprocess
-                    
-                    # mpsk
                     rewrite_calling_station_id
+                    
                     if (!EAP-Message) {
-                        authorized_mpsks
-                        if (ok) {
+                        # non-802.1x: mac auth
+                        rest
+                        if (updated) {
                             update control {
                                 Auth-Type := Accept
                             }

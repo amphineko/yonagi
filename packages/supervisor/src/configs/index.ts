@@ -2,7 +2,6 @@ import { Client } from "@yonagi/common/clients"
 import { Name } from "@yonagi/common/common"
 import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
 
-import { generateAuthorizedMpsksFile } from "./authorizedMpsks"
 import { generateRaddb } from "./raddb"
 
 export interface RaddbGenParams {
@@ -16,5 +15,5 @@ export interface RaddbGenParams {
 }
 
 export async function generateConfigs(params: RaddbGenParams): Promise<void> {
-    await Promise.all([generateAuthorizedMpsksFile(params), generateRaddb(params)])
+    await Promise.all([generateRaddb(params)])
 }

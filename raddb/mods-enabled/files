@@ -1,4 +1,0 @@
-files authorized_mpsks {
-	key = "%{Calling-Station-ID}"
-	filename = ${confdir}/authorized_mpsks
-}
