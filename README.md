@@ -5,6 +5,25 @@
 -   ~~EAP-MSCHAPv2~~
 -   EAP-TLS
 
+## Getting Started
+
+### Prepare
+
+-   Clone this repository (recommended), or download the `docker-compose.yml` and create `data` directory
+-   (Optional) Modify `docker-compose.yml` to use `master` branch instead of `latest` tag
+-   Run `docker compose up -d` (Docker and Docker Compose plugin required)
+
+### Configure
+
+-   Open `http://localhost:3000` on your browser
+
+    -   Configure your NAS clients (e.g. Aruba Mobility Controllers or Aruba Instant APs)
+    -   (Optional) Configure MPSKs for WPA-Personal SSID/devices
+    -   (Optional) Initialize PKI and generate certificates for EAP-TLS (WPA-Enterprise)
+    -   (Optional) Download client certificates from PKI dashboard to your devices
+
+-   Restart by using the reload button on the top-right corner, to apply changes of your NAS clients/~~MPSKs~~/PKI
+
 ## Project Structure
 
 -   `/common` - Shared Libraries: Serializers and Typings on [io-ts](https://github.com/gcanti/io-ts)
