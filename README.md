@@ -1,9 +1,10 @@
-## Features/Supported Authentication Methods
+## TL;DR
 
--   Aruba/Cisco Multi Pre-Shared Key
--   ~~EAP-GTC~~
--   ~~EAP-MSCHAPv2~~
--   EAP-TLS
+-   RADIUS server for small-scale wireless networks
+-   Based on [FreeRADIUS](https://github.com/FreeRADIUS/freeradius-server)
+-   Has a web dashboard for configs and PKI
+-   Supports Aruba/Cisco MPSK and EAP-TLS authentication methods
+-   ~~Supports for EAP-GTC and EAP-MSCHAPv2~~ in the future
 
 ## Getting Started
 
