@@ -6,6 +6,7 @@ services:
         build:
             context: "."
             dockerfile: "Dockerfile"
+            target: "dist"
         command: ["/app/scripts/supervisor.sh"]
         entrypoint: ["/bin/sh"]
         environment:
@@ -23,6 +24,7 @@ services:
         build:
             context: "."
             dockerfile: "Dockerfile"
+            target: "dist"
         command: ["web:start"]
         entrypoint: ["/usr/local/bin/yarn"]
         environment:

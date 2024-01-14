@@ -3,7 +3,7 @@
 	"build": {
 		"context": "..",
 		"dockerfile": "../Dockerfile",
-		"target": "base"
+		"target": "dev"
 	},
 	"appPort": [
 		"3000:3000/tcp",
@@ -16,7 +16,6 @@
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {},
 		"ghcr.io/devcontainers/features/git:1": {},
-		"ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {}
 	},
 	"customizations": {
 		"vscode": {

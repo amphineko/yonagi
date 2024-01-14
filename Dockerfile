@@ -1,18 +1,15 @@
-FROM node:lts AS base
+FROM alpine:3.19 AS base
 
-ARG RADDB=/etc/freeradius/3.0
+ARG RADDB=/etc/raddb
+
+RUN \
+    apk add --no-cache freeradius freeradius-eap freeradius-rest nodejs yarn
 
 ENV \
     SUPERVISOR_DATA_DIR=/data \
     SUPERVISOR_RADDB_DIR=${RADDB} \
     SUPERVISOR_OUTPUT_DIR=/var/run \
-    SUPERVISOR_RADIUSD=/usr/sbin/freeradius
-
-RUN \
-    apt-get update && \
-    apt-get install -y --no-install-recommends eapoltest freeradius freeradius-rest freeradius-utils && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    SUPERVISOR_RADIUSD=/usr/sbin/radiusd
 
 RUN mkdir -p /data /var/run
 
@@ -27,6 +24,11 @@ COPY \
 WORKDIR /app
 
 COPY . /app/
+
+FROM base AS dev
+
+RUN \
+    apk add --no-cache freeradius-utils git jq openssl wpa_supplicant
 
 FROM base AS dist
 
