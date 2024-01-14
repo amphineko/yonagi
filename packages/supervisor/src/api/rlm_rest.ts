@@ -14,16 +14,16 @@ import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 import * as PR from "io-ts/lib/PathReporter"
 
-import { MPSKStorage } from "../radiusd/storages"
 import { RawRlmRestResponse, RlmRestRequestType } from "../rlm_rest/types"
+import { AbstractMPSKStorage } from "../storages"
 
 @Controller("/api/v1/rlm_rest")
 export class RlmRestController {
-    constructor(@Inject(forwardRef(() => MPSKStorage)) private readonly mpskStorage: MPSKStorage) {}
+    constructor(@Inject(forwardRef(() => AbstractMPSKStorage)) private readonly mpskStorage: AbstractMPSKStorage) {}
 
     @Post("/authorize")
     async authorize(@Body() rawBody: unknown): Promise<RawRlmRestResponse> {
-        const response = await F.pipe(
+        return await F.pipe(
             TE.Do,
             // parse request from radiusd
             TE.bind("request", () =>
@@ -38,12 +38,9 @@ export class RlmRestController {
             TE.bind("mpsk", ({ request: { callingStationId } }) =>
                 F.pipe(
                     TE.tryCatch(async () => {
-                        // TODO(amphineko): optimize this
-                        const all = await this.mpskStorage.all()
-                        for (const mpsk of all.values()) {
-                            if (mpsk.callingStationId === callingStationId) {
-                                return this.createMpskResponse(mpsk)
-                            }
+                        const mpsk = await this.mpskStorage.getByCallingStationId(callingStationId)
+                        if (mpsk) {
+                            return this.createMpskResponse(mpsk)
                         }
                     }, E.toError),
                     TE.mapLeft((error) => new InternalServerErrorException(error.message)),
@@ -60,7 +57,6 @@ export class RlmRestController {
                 throw error
             }),
         )()
-        return response
     }
 
     private createMpskResponse(mpsk: CallingStationIdAuthentication): RawRlmRestResponse {

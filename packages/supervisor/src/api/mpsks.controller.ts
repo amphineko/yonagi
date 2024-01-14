@@ -8,21 +8,28 @@ import {
 
 import { ResponseInterceptor } from "./api.middleware"
 import { EncodeResponseWith, createOrUpdate } from "./common"
-import { MPSKStorage } from "../radiusd/storages"
+import { AbstractMPSKStorage } from "../storages"
 
 @Controller("/api/v1/mpsks")
 @UseInterceptors(ResponseInterceptor)
 export class MPSKController {
-    constructor(@Inject(forwardRef(() => MPSKStorage)) private mpskStorage: MPSKStorage) {}
+    constructor(@Inject(forwardRef(() => AbstractMPSKStorage)) private mpskStorage: AbstractMPSKStorage) {}
 
     @Post("/:name")
     async createOrUpdate(@Param("name") rawName: string, @Body() body: unknown): Promise<void> {
-        await createOrUpdate(rawName, body, CreateMPSKRequestType, UpdateMPSKRequestType, this.mpskStorage)()
+        await createOrUpdate(
+            rawName,
+            body,
+            CreateMPSKRequestType,
+            UpdateMPSKRequestType,
+            (name) => this.mpskStorage.getByName(name),
+            (name, value) => this.mpskStorage.createOrUpdateByName(name, { ...value, allowedAssociations: [] }),
+        )()
     }
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
-        await this.mpskStorage.delete(name)
+        await this.mpskStorage.deleteByName(name)
     }
 
     @Get("/")

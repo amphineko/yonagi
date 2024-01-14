@@ -9,10 +9,11 @@ import { RlmRestController } from "./rlm_rest"
 import { ConfigModule } from "../config"
 import { PkiModule } from "../pki/module"
 import { RadiusdModule } from "../radiusd/module"
+import { StorageModule } from "../storages/module"
 
 @Module({
     controllers: [MPSKController, PkiController, RadiusClientController, RadiusdController, RlmRestController],
-    imports: [ConfigModule, PkiModule, RadiusdModule],
+    imports: [ConfigModule, PkiModule, RadiusdModule, StorageModule],
     providers: [ResponseInterceptor],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

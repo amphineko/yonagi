@@ -4,10 +4,10 @@ import { basename } from "path"
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import pino from "pino"
 
-import { ClientStorage, MPSKStorage } from "./storages"
 import { Config } from "../config"
 import { generateConfigs } from "../configs"
 import { Pki } from "../pki/pki"
+import { AbstractClientStorage, AbstractMPSKStorage } from "../storages"
 
 const logger = pino({ name: `${basename(__dirname)}/${basename(__filename)}` })
 
@@ -179,9 +179,9 @@ export class Radiusd {
     private _process: Process
 
     constructor(
-        @Inject(forwardRef(() => ClientStorage)) private clientStorage: ClientStorage,
+        @Inject(forwardRef(() => AbstractClientStorage)) private clientStorage: AbstractClientStorage,
         @Inject(forwardRef(() => Config)) private config: Config,
-        @Inject(forwardRef(() => MPSKStorage)) private mpskStorage: MPSKStorage,
+        @Inject(forwardRef(() => AbstractMPSKStorage)) private mpskStorage: AbstractMPSKStorage,
         @Inject(forwardRef(() => Pki)) private pki: Pki,
     ) {
         this._process = new Process(config.radiusdPath)

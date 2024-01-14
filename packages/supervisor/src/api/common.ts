@@ -1,6 +1,5 @@
 import { BadRequestException, InternalServerErrorException } from "@nestjs/common"
 import { Name, NameType } from "@yonagi/common/common"
-import { KVStorage } from "@yonagi/common/storage"
 import * as E from "fp-ts/lib/Either"
 import * as Task from "fp-ts/lib/Task"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -27,13 +26,14 @@ export function createOrUpdate<P extends t.Props, T = t.TypeC<P>, PT = t.Partial
     body: unknown,
     createRequestType: t.Decoder<unknown, T>,
     updateRequestType: t.Decoder<unknown, PT>,
-    storage: KVStorage<Name, T>,
+    get: (name: Name) => Promise<T | null>,
+    set: (name: Name, value: T) => Promise<void>,
 ): Task.Task<void> {
     const name: Name = sanitizeName(unsanitizedName)
 
     return F.pipe(
         TE.tryCatch(
-            () => storage.get(name),
+            () => get(name),
             (reason) => new InternalServerErrorException(reason),
         ),
 
@@ -62,7 +62,7 @@ export function createOrUpdate<P extends t.Props, T = t.TypeC<P>, PT = t.Partial
 
         TE.flatMap((value) =>
             TE.tryCatch(
-                () => storage.set(name, value),
+                () => set(name, value),
                 (reason) => new InternalServerErrorException(reason),
             ),
         ),
