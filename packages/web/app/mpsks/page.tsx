@@ -88,7 +88,7 @@ function MpskTable(): JSX.Element {
                     {tableItems}
                     <MutableTableRow
                         codec={CallingStationIdAuthenticationType}
-                        initialValue={{ allowedAssociations: [], callingStationId: "", psk: "" }}
+                        initialValue={{ callingStationId: "", psk: "" }}
                         key={`new/${nonce}`}
                         name={""}
                         rowType="create"

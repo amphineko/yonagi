@@ -23,7 +23,7 @@ export class MPSKController {
             CreateMPSKRequestType,
             UpdateMPSKRequestType,
             (name) => this.mpskStorage.getByName(name),
-            (name, value) => this.mpskStorage.createOrUpdateByName(name, { ...value, allowedAssociations: [] }),
+            (name, value) => this.mpskStorage.createOrUpdateByName(name, { ...value }),
         )()
     }
 
