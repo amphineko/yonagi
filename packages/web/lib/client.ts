@@ -1,11 +1,24 @@
 "use client"
 
-import { useReducer } from "react"
+import { useReducer, useState } from "react"
 import { useQueryClient } from "react-query"
 
 export function useNonce() {
     const [nonce, increaseNonce] = useReducer((nonce: number) => nonce + 1, 0)
     return { nonce, increaseNonce }
+}
+
+export function useStagedNonce() {
+    const [nextNonce, increaseNonce] = useReducer((nonce: number) => nonce + 1, 0)
+    const [nonce, setNonce] = useState(nextNonce)
+
+    return {
+        nonce,
+        increaseNonce,
+        publishNonce: () => {
+            setNonce(nextNonce)
+        },
+    }
 }
 
 export function withNonce<F extends (...args: never[]) => never>(
@@ -19,15 +32,11 @@ export function withNonce<F extends (...args: never[]) => never>(
 }
 
 export function useQueryHelpers(queryKey: readonly unknown[]) {
-    const { nonce, increaseNonce } = useNonce()
     const queryClient = useQueryClient()
 
     return {
         invalidate: async () => {
             await queryClient.invalidateQueries({ queryKey })
-            increaseNonce()
         },
-        nonce,
-        queryClient,
     }
 }

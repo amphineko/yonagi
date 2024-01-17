@@ -1,77 +1,199 @@
 "use client"
 
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
-import { Name } from "@yonagi/common/common"
+import { Add, Delete, Save } from "@mui/icons-material"
+import { IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { Name, NameType } from "@yonagi/common/common"
 import {
     CallingStationIdAuthentication,
     CallingStationIdAuthenticationType,
     CallingStationIdType,
     PSKType,
 } from "@yonagi/common/mpsks"
-import { useMemo } from "react"
-import { useQuery } from "react-query"
+import * as E from "fp-ts/lib/Either"
+import * as TE from "fp-ts/lib/TaskEither"
+import * as F from "fp-ts/lib/function"
+import * as PR from "io-ts/lib/PathReporter"
+import * as t from "io-ts/lib/index"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useMutation, useQuery } from "react-query"
 
 import { createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
-import { useQueryHelpers } from "../../lib/client"
-import { MutableTableCell, MutableTableRow } from "../../lib/tables"
+import { useQueryHelpers, useStagedNonce } from "../../lib/client"
+import { ValidatedTableCell } from "../../lib/tables"
 
 const MPSK_QUERY_KEY = ["mpsks"]
 
-function tableCells(
-    mpsk: Partial<CallingStationIdAuthentication>,
-    stage: (field: string, partial: Partial<CallingStationIdAuthentication>) => void,
-): JSX.Element {
+function MpskTableRow({
+    createOrUpdate,
+    delete: deleteRow,
+    initialValue,
+    isCreateOrUpdate,
+    name: initalName,
+}: {
+    createOrUpdate: (name: Name, mpsk: CallingStationIdAuthentication) => Promise<void>
+    delete: (name: Name) => Promise<void>
+    initialValue: Partial<CallingStationIdAuthentication>
+    isCreateOrUpdate: "create" | "update"
+    name?: Name
+}): JSX.Element {
+    const [name, setName] = useState<string>(initalName ?? "")
+    const isNameModified = useMemo(() => name !== (initalName ?? ""), [initalName, name])
+
+    const [callingStationId, setCallingStationId] = useState<string>(initialValue.callingStationId ?? "")
+    const isCallingStationIdModified = useMemo(
+        () => callingStationId !== (initialValue.callingStationId ?? ""),
+        [initialValue.callingStationId, callingStationId],
+    )
+
+    const [psk, setPsk] = useState<string>(initialValue.psk ?? "")
+    const isPskModified = useMemo(() => psk !== (initialValue.psk ?? ""), [initialValue.psk, psk])
+
+    const formValidation = useMemo<t.Validation<{ name: string; mpsk: CallingStationIdAuthentication }>>(
+        () =>
+            F.pipe(
+                E.Do,
+                E.bind("name", () => NameType.decode(name)),
+                E.bind("mpsk", () => CallingStationIdAuthenticationType.decode({ callingStationId, psk })),
+            ),
+        [name, callingStationId, psk],
+    )
+
+    const { invalidate } = useQueryHelpers(MPSK_QUERY_KEY)
+    const { mutate: submit } = useMutation({
+        mutationFn: async (validation: typeof formValidation) => {
+            await F.pipe(
+                TE.fromEither(validation),
+                TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                TE.flatMap(({ name, mpsk }) => {
+                    console.log(name, mpsk)
+                    return TE.tryCatch(() => createOrUpdate(name, mpsk), E.toError)
+                }),
+                TE.mapLeft((error) => {
+                    throw error
+                }),
+            )()
+            await invalidate()
+        },
+        mutationKey: ["mpsks", "create-or-update", name],
+        onSettled: invalidate,
+    })
+    const { mutate: submitDelete } = useMutation<unknown, unknown, Name>({
+        mutationFn: async (name) => {
+            await deleteRow(name)
+        },
+        mutationKey: ["mpsks", "delete", name],
+        onSettled: invalidate,
+    })
+
+    useEffect(() => {
+        setName(initalName ?? "")
+        setCallingStationId(initialValue.callingStationId ?? "")
+        setPsk(initialValue.psk ?? "")
+    }, [initalName, initialValue.callingStationId, initialValue.psk])
+
     return (
-        <>
-            <MutableTableCell
-                codec={CallingStationIdType}
-                initialValue={mpsk.callingStationId ?? ""}
-                stage={(callingStationId) => {
-                    stage("callingStationId", callingStationId ? { callingStationId } : {})
-                }}
+        <TableRow
+            onKeyDown={(event) => {
+                if (event.key === "Enter") submit(formValidation)
+            }}
+        >
+            <ValidatedTableCell
+                disabled={isCreateOrUpdate === "update"}
+                isModified={isNameModified}
+                onChange={setName}
+                validate={(value) => NameType.decode(value)}
+                value={name}
             />
-            <MutableTableCell
-                codec={PSKType}
-                initialValue={mpsk.psk ?? ""}
-                stage={(psk) => {
-                    stage("psk", psk ? { psk } : {})
-                }}
+            <ValidatedTableCell
+                isModified={isCallingStationIdModified}
+                onChange={setCallingStationId}
+                validate={(value) => CallingStationIdType.decode(value)}
+                value={callingStationId}
             />
-        </>
+            <ValidatedTableCell
+                isModified={isPskModified}
+                onChange={setPsk}
+                validate={(value) => PSKType.decode(value)}
+                value={psk}
+            />
+
+            {isCreateOrUpdate === "create" && (
+                <TableCell>
+                    <IconButton
+                        aria-label="Create"
+                        disabled={E.isLeft(formValidation)}
+                        onClick={() => {
+                            submit(formValidation)
+                        }}
+                    >
+                        <Add />
+                    </IconButton>
+                </TableCell>
+            )}
+
+            {isCreateOrUpdate === "update" && (
+                <TableCell>
+                    <IconButton
+                        aria-label="Update"
+                        disabled={E.isLeft(formValidation)}
+                        onClick={() => {
+                            submit(formValidation)
+                        }}
+                    >
+                        <Save />
+                    </IconButton>
+                    <IconButton
+                        aria-label="Delete"
+                        onClick={() => {
+                            submitDelete(name)
+                        }}
+                    >
+                        <Delete />
+                    </IconButton>
+                </TableCell>
+            )}
+        </TableRow>
     )
 }
 
 function MpskTable(): JSX.Element {
-    const { data: mpsks } = useQuery<ReadonlyMap<Name, CallingStationIdAuthentication>>(
-        MPSK_QUERY_KEY,
-        async () => await getAllMpsks(),
+    const { nonce, increaseNonce, publishNonce } = useStagedNonce()
+    const { data: mpsks } = useQuery<ReadonlyMap<Name, CallingStationIdAuthentication>>({
+        queryFn: async () => await getAllMpsks(),
+        queryKey: MPSK_QUERY_KEY,
+        onSettled: publishNonce,
+    })
+
+    const createOrUpdateByNameWithNonce = useCallback(
+        async (name: Name, mpsk: CallingStationIdAuthentication) => {
+            await createOrUpdateByName(name, mpsk)
+            increaseNonce()
+        },
+        [increaseNonce],
     )
-    const { invalidate, nonce } = useQueryHelpers(MPSK_QUERY_KEY)
+    const deleteByNameWithNonce = useCallback(
+        async (name: Name) => {
+            await deleteByName(name)
+            increaseNonce()
+        },
+        [increaseNonce],
+    )
 
     const tableItems = useMemo(() => {
         if (mpsks === undefined) {
             return []
         }
         return Array.from(mpsks.entries()).map(([name, mpsk]) => (
-            <MutableTableRow
-                codec={CallingStationIdAuthenticationType}
+            <MpskTableRow
+                createOrUpdate={createOrUpdateByNameWithNonce}
+                delete={deleteByNameWithNonce}
                 initialValue={mpsk}
-                key={`${name}/${nonce}`}
+                isCreateOrUpdate="update"
+                key={`${name}-${nonce}`}
                 name={name}
-                rowType="update"
-                submit={async (name: Name, mpsk: CallingStationIdAuthentication) => {
-                    await createOrUpdateByName(name, mpsk)
-                    await invalidate()
-                }}
-                deleteRow={async (name: Name) => {
-                    await deleteByName(name)
-                    await invalidate()
-                }}
-            >
-                {(_, mpsk, stage) => tableCells(mpsk, stage)}
-            </MutableTableRow>
+            />
         ))
-    }, [invalidate, mpsks, nonce])
+    }, [createOrUpdateByNameWithNonce, deleteByNameWithNonce, mpsks, nonce])
 
     return (
         <TableContainer>
@@ -86,19 +208,13 @@ function MpskTable(): JSX.Element {
                 </TableHead>
                 <TableBody>
                     {tableItems}
-                    <MutableTableRow
-                        codec={CallingStationIdAuthenticationType}
-                        initialValue={{ callingStationId: "", psk: "" }}
-                        key={`new/${nonce}`}
-                        name={""}
-                        rowType="create"
-                        submit={async (name: Name, mpsk: CallingStationIdAuthentication) => {
-                            await createOrUpdateByName(name, mpsk)
-                            await invalidate()
-                        }}
-                    >
-                        {(_, client, stage) => tableCells(client, stage)}
-                    </MutableTableRow>
+                    <MpskTableRow
+                        createOrUpdate={createOrUpdateByNameWithNonce}
+                        delete={deleteByNameWithNonce}
+                        initialValue={{}}
+                        isCreateOrUpdate="create"
+                        key={`create-${nonce}`}
+                    />
                 </TableBody>
             </Table>
         </TableContainer>
