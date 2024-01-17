@@ -1,7 +1,6 @@
 "use server"
 
 import { ListMPSKsResponseType } from "@yonagi/common/api/mpsks"
-import { Name } from "@yonagi/common/common"
 import { CallingStationIdAuthentication, CallingStationIdAuthenticationType } from "@yonagi/common/mpsks"
 import * as t from "io-ts"
 
@@ -15,6 +14,6 @@ export async function deleteByName(name: string): Promise<void> {
     await deleteEndpoint(`api/v1/mpsks/${name}`)
 }
 
-export async function getAllMpsks(): Promise<ReadonlyMap<Name, CallingStationIdAuthentication>> {
+export async function getAllMpsks(): Promise<readonly CallingStationIdAuthentication[]> {
     return await getTypedEndpoint(ListMPSKsResponseType, "api/v1/mpsks")
 }

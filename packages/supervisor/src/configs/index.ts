@@ -1,6 +1,5 @@
 import { Client } from "@yonagi/common/clients"
 import { Name } from "@yonagi/common/common"
-import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
 
 import { generateRaddb } from "./raddb"
 
@@ -10,7 +9,6 @@ export interface RaddbGenParams {
         ca: { cert: string }
         server: { cert: string; privKey: string }
     }
-    mpsks: ReadonlyMap<Name, CallingStationIdAuthentication>
     raddbPath: string
 }
 

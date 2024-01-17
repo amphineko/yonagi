@@ -1,7 +1,7 @@
-{
-    "test": {
+[
+    {
         "name": "test",
-        "callingStationId": "11-22-33-44-55-66",
+        "callingStationId": "11-22-33-44-55-ff",
         "psk": "password"
     }
-}
+]

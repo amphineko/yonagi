@@ -13,7 +13,7 @@ export abstract class AbstractClientStorage {
 }
 
 export abstract class AbstractMPSKStorage {
-    abstract all(): Promise<ReadonlyMap<Name, CallingStationIdAuthentication>>
+    abstract all(): Promise<readonly CallingStationIdAuthentication[]>
 
     abstract createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void>
 

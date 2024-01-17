@@ -1,7 +1,7 @@
 "use client"
 
 import { Add, Delete, Save } from "@mui/icons-material"
-import { IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from "@mui/material"
 import { Name, NameType } from "@yonagi/common/common"
 import {
     CallingStationIdAuthentication,
@@ -53,9 +53,23 @@ function MpskTableRow({
             F.pipe(
                 E.Do,
                 E.bind("name", () => NameType.decode(name)),
-                E.bind("mpsk", () => CallingStationIdAuthenticationType.decode({ callingStationId, psk })),
+                E.bind("mpsk", ({ name }) =>
+                    CallingStationIdAuthenticationType.decode({ callingStationId, name, psk }),
+                ),
             ),
         [name, callingStationId, psk],
+    )
+    const formError = useMemo(
+        () =>
+            F.pipe(
+                formValidation,
+                E.mapLeft((errors) => PR.failure(errors).join("\n")),
+                E.fold(
+                    (error) => error,
+                    () => "",
+                ),
+            ),
+        [formValidation],
     )
 
     const { invalidate } = useQueryHelpers(MPSK_QUERY_KEY)
@@ -119,29 +133,33 @@ function MpskTableRow({
 
             {isCreateOrUpdate === "create" && (
                 <TableCell>
-                    <IconButton
-                        aria-label="Create"
-                        disabled={E.isLeft(formValidation)}
-                        onClick={() => {
-                            submit(formValidation)
-                        }}
-                    >
-                        <Add />
-                    </IconButton>
+                    <Tooltip title={formError}>
+                        <IconButton
+                            aria-label="Create"
+                            disabled={E.isLeft(formValidation)}
+                            onClick={() => {
+                                submit(formValidation)
+                            }}
+                        >
+                            <Add />
+                        </IconButton>
+                    </Tooltip>
                 </TableCell>
             )}
 
             {isCreateOrUpdate === "update" && (
                 <TableCell>
-                    <IconButton
-                        aria-label="Update"
-                        disabled={E.isLeft(formValidation)}
-                        onClick={() => {
-                            submit(formValidation)
-                        }}
-                    >
-                        <Save />
-                    </IconButton>
+                    <Tooltip title={formError}>
+                        <IconButton
+                            aria-label="Update"
+                            disabled={E.isLeft(formValidation)}
+                            onClick={() => {
+                                submit(formValidation)
+                            }}
+                        >
+                            <Save />
+                        </IconButton>
+                    </Tooltip>
                     <IconButton
                         aria-label="Delete"
                         onClick={() => {
@@ -158,7 +176,7 @@ function MpskTableRow({
 
 function MpskTable(): JSX.Element {
     const { nonce, increaseNonce, publishNonce } = useStagedNonce()
-    const { data: mpsks } = useQuery<ReadonlyMap<Name, CallingStationIdAuthentication>>({
+    const { data: mpsks } = useQuery<readonly CallingStationIdAuthentication[]>({
         queryFn: async () => await getAllMpsks(),
         queryKey: MPSK_QUERY_KEY,
         onSettled: publishNonce,
@@ -183,14 +201,14 @@ function MpskTable(): JSX.Element {
         if (mpsks === undefined) {
             return []
         }
-        return Array.from(mpsks.entries()).map(([name, mpsk]) => (
+        return mpsks.map((mpsk) => (
             <MpskTableRow
                 createOrUpdate={createOrUpdateByNameWithNonce}
                 delete={deleteByNameWithNonce}
                 initialValue={mpsk}
                 isCreateOrUpdate="update"
-                key={`${name}-${nonce}`}
-                name={name}
+                key={`${mpsk.name}-${nonce}`}
+                name={mpsk.name}
             />
         ))
     }, [createOrUpdateByNameWithNonce, deleteByNameWithNonce, mpsks, nonce])

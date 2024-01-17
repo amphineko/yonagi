@@ -2,6 +2,8 @@ import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
 
+import { Name, NameType } from "./common"
+
 export const CallingStationIdType = new t.Type<string, string, unknown>(
     "CallingStationId",
     // is string
@@ -37,6 +39,7 @@ export type PSK = t.TypeOf<typeof PSKType>
 
 export interface CallingStationIdAuthentication {
     callingStationId: CallingStationId
+    name: Name
     psk: PSK
     ssid?: string
     vlan?: number
@@ -45,6 +48,7 @@ export interface CallingStationIdAuthentication {
 export const CallingStationIdAuthenticationType: t.Type<CallingStationIdAuthentication> = t.intersection([
     t.type({
         callingStationId: CallingStationIdType,
+        name: NameType,
         psk: PSKType,
     }),
     t.partial({

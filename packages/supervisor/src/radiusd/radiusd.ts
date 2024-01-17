@@ -189,12 +189,10 @@ export class Radiusd {
 
     private async _regenerateFiles(): Promise<void> {
         const clients = await this.clientStorage.all()
-        const mpsks = await this.mpskStorage.all()
         const pkiDeployed = await this.pki.deployToRadiusd()
         await generateConfigs({
             clients,
             pki: pkiDeployed ? this.config.pkiOutputPath : undefined,
-            mpsks,
             raddbPath: this.config.raddbDirPath,
         })
     }
