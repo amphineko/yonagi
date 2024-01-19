@@ -25,6 +25,10 @@ export class Config {
         return `${this.dataDirPath}/clients.json`
     }
 
+    public get sqliteFilePath(): string {
+        return `${this.dataDirPath}/states.sqlite3`
+    }
+
     public get pkiPath(): string {
         return `${this.dataDirPath}/pki`
     }

@@ -1,7 +1,10 @@
-import { Module } from "@nestjs/common"
+import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardRef } from "@nestjs/common"
+import { DataSource } from "typeorm"
 
 import { AbstractClientStorage, AbstractMPSKStorage } from "."
-import { FileBasedClientStorage, FileBasedMPSKStorage } from "./files"
+import { FileBasedMPSKStorage } from "./files"
+import { SqliteDataSource } from "./sql/backends"
+import { SqlClientStorage } from "./sql/clients"
 import { Config, ConfigModule } from "../config"
 
 @Module({
@@ -9,9 +12,13 @@ import { Config, ConfigModule } from "../config"
     imports: [ConfigModule],
     providers: [
         {
-            provide: AbstractClientStorage,
-            useFactory: (config: Config) => new FileBasedClientStorage(config.clientsFilePath),
+            provide: DataSource,
+            useFactory: (config: Config) => new SqliteDataSource(config),
             inject: [Config],
+        },
+        {
+            provide: AbstractClientStorage,
+            useClass: SqlClientStorage,
         },
         {
             provide: AbstractMPSKStorage,
@@ -21,4 +28,15 @@ import { Config, ConfigModule } from "../config"
     ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-export class StorageModule {}
+export class StorageModule implements OnApplicationBootstrap, OnApplicationShutdown {
+    constructor(@Inject(forwardRef(() => DataSource)) private readonly dataSource: DataSource) {}
+
+    async onApplicationBootstrap(): Promise<void> {
+        await this.dataSource.initialize()
+        await this.dataSource.synchronize(false)
+    }
+
+    async onApplicationShutdown(): Promise<void> {
+        await this.dataSource.destroy()
+    }
+}
