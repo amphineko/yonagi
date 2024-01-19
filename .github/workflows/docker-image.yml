@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+      - feat-*
+      - fix-*
+      - re-*
     tags:
       - "v*.*.*"
   workflow_dispatch:
