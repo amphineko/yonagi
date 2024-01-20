@@ -1,1 +1,2 @@
 node_modules
+packages/supervisor/src/storages/sql/migrations

@@ -17,7 +17,7 @@ export abstract class AbstractMPSKStorage {
 
     abstract createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void>
 
-    abstract deleteByName(name: Name): Promise<void>
+    abstract deleteByName(name: Name): Promise<boolean>
 
     abstract getByCallingStationId(callingStationId: CallingStationId): Promise<CallingStationIdAuthentication | null>
 

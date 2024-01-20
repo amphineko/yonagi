@@ -18,10 +18,10 @@ export class SqlClientEntity extends BaseEntity {
     @Column({ unique: true })
     public name!: string
 
-    @Column()
+    @Column({ nullable: false })
     public ipaddr!: string
 
-    @Column()
+    @Column({ nullable: false })
     public secret!: string
 }
 

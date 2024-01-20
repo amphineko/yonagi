@@ -11,10 +11,13 @@ export class Config {
 
     public readonly raddbDirPath: string
 
+    public readonly typeormEnableSynchronize: boolean
+
     constructor() {
         this.dataDirPath = process.env.SUPERVISOR_DATA_DIR ?? "/data"
         this.outputDirPath = process.env.SUPERVISOR_OUTPUT_DIR ?? "/var/run"
         this.raddbDirPath = process.env.SUPERVISOR_RADDB_DIR ?? "/etc/freeradius/3.0"
+        this.typeormEnableSynchronize = process.env.SUPERVISOR_TYPEORM_SYNC?.toLowerCase() === "true"
     }
 
     public get authorizedMpsksFilePath(): string {

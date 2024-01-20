@@ -109,14 +109,15 @@ export class FileBasedMPSKStorage extends AbstractMPSKStorage {
         })
     }
 
-    async deleteByName(name: Name): Promise<void> {
-        await this.mutate((record) => {
+    async deleteByName(name: Name): Promise<boolean> {
+        return await this.mutate((record) => {
             for (let i = 0; i < record.length; i++) {
                 if (record[i].name === name) {
                     record.splice(i, 1)
-                    return
+                    return true
                 }
             }
+            return false
         })
     }
 

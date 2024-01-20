@@ -2,9 +2,9 @@ import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardR
 import { DataSource } from "typeorm"
 
 import { AbstractClientStorage, AbstractMPSKStorage } from "."
-import { FileBasedMPSKStorage } from "./files"
-import { SqliteDataSource } from "./sql/backends"
 import { SqlClientStorage } from "./sql/clients"
+import { SqlMPSKStorage } from "./sql/mpsks"
+import { SqliteDataSource } from "./sql/sqlite"
 import { Config, ConfigModule } from "../config"
 
 @Module({
@@ -22,8 +22,7 @@ import { Config, ConfigModule } from "../config"
         },
         {
             provide: AbstractMPSKStorage,
-            useFactory: (config: Config) => new FileBasedMPSKStorage(config.authorizedMpsksFilePath),
-            inject: [Config],
+            useClass: SqlMPSKStorage,
         },
     ],
 })
@@ -33,6 +32,7 @@ export class StorageModule implements OnApplicationBootstrap, OnApplicationShutd
 
     async onApplicationBootstrap(): Promise<void> {
         await this.dataSource.initialize()
+        await this.dataSource.runMigrations()
         await this.dataSource.synchronize(false)
     }
 

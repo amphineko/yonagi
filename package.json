@@ -25,7 +25,8 @@
         "prettier": "^3.1.0"
     },
     "scripts": {
-        "lint": "eslint --ext .ts,.tsx . --fix",
+        "lint": "eslint --ext .js,.jsx,.ts,.tsx . --fix",
+        "lint:cached": "eslint --ext .js,.jsx,.ts,.tsx . --fix --cache",
         "web:build": "yarn workspace @yonagi/web build",
         "web:dev": "yarn workspace @yonagi/web dev",
         "web:start": "yarn workspace @yonagi/web start"
