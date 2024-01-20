@@ -1,7 +1,8 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { Client, ClientType } from "@yonagi/common/clients"
-import { IpNetworkFromStringType, Name, NameType, SecretType } from "@yonagi/common/common"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
+import { Client, ClientType } from "@yonagi/common/types/Client"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { Name, NameType } from "@yonagi/common/types/Name"
+import { SecretType } from "@yonagi/common/types/Secret"
 import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -10,6 +11,7 @@ import * as PR from "io-ts/lib/PathReporter"
 import { BaseEntity, Column, DataSource, Entity, EntityManager, PrimaryGeneratedColumn, Repository } from "typeorm"
 
 import { AbstractClientStorage } from ".."
+import { resolveOrThrow } from "../../api/common"
 
 @Entity("clients")
 export class SqlClientEntity extends BaseEntity {

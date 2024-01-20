@@ -2,7 +2,8 @@ import { writeFile } from "node:fs/promises"
 import { basename } from "node:path"
 
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { KeyGenParams, RelativeDistinguishedNames } from "@yonagi/common/pki"
+import { KeyGenParams } from "@yonagi/common/types/PKI"
+import { RelativeDistinguishedNames } from "@yonagi/common/types/RelativeDistinguishedNames"
 import { pino } from "pino"
 import * as pkijs from "pkijs"
 

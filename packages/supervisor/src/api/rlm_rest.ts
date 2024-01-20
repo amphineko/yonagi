@@ -8,12 +8,13 @@ import {
     Post,
     forwardRef,
 } from "@nestjs/common"
-import { CallingStationIdAuthentication } from "@yonagi/common/mpsks"
+import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 import * as PR from "io-ts/lib/PathReporter"
 
+import { resolveOrThrow } from "./common"
 import { RawRlmRestResponse, RlmRestRequestType } from "../rlm_rest/types"
 import { AbstractMPSKStorage } from "../storages"
 
@@ -53,9 +54,7 @@ export class RlmRestController {
                 Object.keys(response).length > 0 ? TE.right(response) : TE.left(new NotFoundException("No MPSK found")),
             ),
             // throw caught errors
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            resolveOrThrow(),
         )()
     }
 

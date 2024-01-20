@@ -5,9 +5,12 @@ import {
     ListClientsResponseType,
     UpdateClientRequestType,
 } from "@yonagi/common/api/clients"
+import * as E from "fp-ts/lib/Either"
+import * as TE from "fp-ts/lib/TaskEither"
+import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, createOrUpdate } from "./common"
+import { EncodeResponseWith, createOrUpdate, resolveOrThrow, validateNameOfRequest } from "./common"
 import { AbstractClientStorage } from "../storages"
 
 @Controller("/api/v1/clients")
@@ -29,7 +32,11 @@ export class RadiusClientController {
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
-        await this.clientStorage.deleteByName(name)
+        await F.pipe(
+            TE.fromEither(validateNameOfRequest(name)),
+            TE.flatMap((name) => TE.tryCatch(async () => await this.clientStorage.deleteByName(name), E.toError)),
+            resolveOrThrow(),
+        )()
     }
 
     @Get("/")

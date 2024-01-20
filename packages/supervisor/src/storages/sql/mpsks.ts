@@ -1,10 +1,7 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { Name } from "@yonagi/common/common"
-import {
-    CallingStationId,
-    CallingStationIdAuthentication,
-    CallingStationIdAuthenticationType,
-} from "@yonagi/common/mpsks"
+import { CallingStationId } from "@yonagi/common/types/CallingStationId"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
+import { Name } from "@yonagi/common/types/Name"
 import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -46,7 +43,7 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
             TE.tryCatch(async () => await this.repository.find(), E.toError),
             TE.flatMapEither(
                 F.flow(
-                    A.map((entity) => CallingStationIdAuthenticationType.decode(entity)),
+                    A.map((entity) => MPSKType.decode(entity)),
                     A.sequence(E.Applicative),
                     E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
                 ),
@@ -91,7 +88,7 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
             TE.flatMapEither((entities) =>
                 entities.length === 1
                     ? F.pipe(
-                          CallingStationIdAuthenticationType.decode(entities[0]),
+                          MPSKType.decode(entities[0]),
                           E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
                       )
                     : entities.length === 0
@@ -111,7 +108,7 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
                 entity
                     ? TE.fromEither(
                           F.pipe(
-                              CallingStationIdAuthenticationType.decode(entity),
+                              MPSKType.decode(entity),
                               E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
                           ),
                       )

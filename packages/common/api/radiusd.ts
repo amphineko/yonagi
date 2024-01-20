@@ -1,6 +1,6 @@
 import * as t from "io-ts"
 
-import { DateFromUnixTimestamp } from "../common"
+import { DateFromUnixTimestamp } from "../types/Date"
 
 export const GetStatusResponseType = t.partial({
     lastExitCode: t.number,

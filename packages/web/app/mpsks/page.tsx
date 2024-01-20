@@ -13,13 +13,10 @@ import {
     TableRow,
     Tooltip,
 } from "@mui/material"
-import { Name, NameType } from "@yonagi/common/common"
-import {
-    CallingStationIdAuthentication,
-    CallingStationIdAuthenticationType,
-    CallingStationIdType,
-    PSKType,
-} from "@yonagi/common/mpsks"
+import { CallingStationIdType } from "@yonagi/common/types/CallingStationId"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
+import { Name, NameType } from "@yonagi/common/types/Name"
+import { PSKType } from "@yonagi/common/types/PSK"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -59,15 +56,8 @@ function MpskTableRow({
     const [psk, setPsk] = useState<string>(initialValue.psk ?? "")
     const isPskModified = useMemo(() => psk !== (initialValue.psk ?? ""), [initialValue.psk, psk])
 
-    const formValidation = useMemo<t.Validation<{ name: string; mpsk: CallingStationIdAuthentication }>>(
-        () =>
-            F.pipe(
-                E.Do,
-                E.bind("name", () => NameType.decode(name)),
-                E.bind("mpsk", ({ name }) =>
-                    CallingStationIdAuthenticationType.decode({ callingStationId, name, psk }),
-                ),
-            ),
+    const formValidation = useMemo<t.Validation<CallingStationIdAuthentication>>(
+        () => MPSKType.decode({ callingStationId, name, psk }),
         [name, callingStationId, psk],
     )
     const formError = useMemo(
@@ -89,9 +79,8 @@ function MpskTableRow({
             await F.pipe(
                 TE.fromEither(validation),
                 TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                TE.flatMap(({ name, mpsk }) => {
-                    console.log(name, mpsk)
-                    return TE.tryCatch(() => createOrUpdate(name, mpsk), E.toError)
+                TE.flatMap((mpsk) => {
+                    return TE.tryCatch(() => createOrUpdate(mpsk.name, mpsk), E.toError)
                 }),
                 TE.mapLeft((error) => {
                     throw error
@@ -102,9 +91,25 @@ function MpskTableRow({
         mutationKey: ["mpsks", "create-or-update", name],
         onSettled: invalidate,
     })
-    const { mutate: submitDelete } = useMutation<unknown, unknown, Name>({
+    const { mutate: submitDelete } = useMutation<unknown, unknown, string>({
         mutationFn: async (name) => {
-            await deleteRow(name)
+            await F.pipe(
+                // validate name
+                TE.fromEither(
+                    F.pipe(
+                        NameType.decode(name),
+                        E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                    ),
+                ),
+                // request to delete
+                TE.flatMap((name) => {
+                    return TE.tryCatch(() => deleteRow(name), E.toError)
+                }),
+                // throw error of validation or request
+                TE.mapLeft((error) => {
+                    throw error
+                }),
+            )()
         },
         mutationKey: ["mpsks", "delete", name],
         onSettled: invalidate,

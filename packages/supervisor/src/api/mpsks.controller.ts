@@ -5,9 +5,12 @@ import {
     ListMPSKsResponseType,
     UpdateMPSKRequestType,
 } from "@yonagi/common/api/mpsks"
+import * as E from "fp-ts/lib/Either"
+import * as TE from "fp-ts/lib/TaskEither"
+import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, createOrUpdate } from "./common"
+import { EncodeResponseWith, createOrUpdate, resolveOrThrow, validateNameOfRequest } from "./common"
 import { AbstractMPSKStorage } from "../storages"
 
 @Controller("/api/v1/mpsks")
@@ -29,7 +32,11 @@ export class MPSKController {
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
-        await this.mpskStorage.deleteByName(name)
+        await F.pipe(
+            TE.fromEither(validateNameOfRequest(name)),
+            TE.flatMap((name) => TE.tryCatch(async () => await this.mpskStorage.deleteByName(name), E.toError)),
+            resolveOrThrow(),
+        )()
     }
 
     @Get("/")

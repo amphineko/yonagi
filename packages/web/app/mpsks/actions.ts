@@ -1,13 +1,13 @@
 "use server"
 
 import { ListMPSKsResponseType } from "@yonagi/common/api/mpsks"
-import { CallingStationIdAuthentication, CallingStationIdAuthenticationType } from "@yonagi/common/mpsks"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import * as t from "io-ts"
 
 import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"
 
 export async function createOrUpdateByName(name: string, mpsk: CallingStationIdAuthentication): Promise<void> {
-    await postTypedEndpoint(t.any, CallingStationIdAuthenticationType, `api/v1/mpsks/${name}`, mpsk)
+    await postTypedEndpoint(t.any, MPSKType, `api/v1/mpsks/${name}`, mpsk)
 }
 
 export async function deleteByName(name: string): Promise<void> {

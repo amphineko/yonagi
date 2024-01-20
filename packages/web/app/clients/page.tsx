@@ -12,8 +12,10 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material"
-import { Client, ClientType } from "@yonagi/common/clients"
-import { IpNetworkFromStringType, Name, NameType, SecretType } from "@yonagi/common/common"
+import { Client, ClientType } from "@yonagi/common/types/Client"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { Name, NameType } from "@yonagi/common/types/Name"
+import { SecretType } from "@yonagi/common/types/Secret"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -86,9 +88,19 @@ function ClientTableRow({
         mutationKey: ["clients", "create-or-update", name],
         onSettled: invalidate,
     })
-    const { mutate: submitDelete } = useMutation<unknown, unknown, Name>({
+    const { mutate: submitDelete } = useMutation<unknown, unknown, string>({
         mutationFn: async (name) => {
-            await deleteRow(name)
+            await F.pipe(
+                // validate name
+                TE.fromEither(NameType.decode(name)),
+                TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                // submit delete
+                TE.flatMap((name) => TE.tryCatch(() => deleteRow(name), E.toError)),
+                // throw error of validation or delete
+                TE.getOrElse((e) => {
+                    throw e
+                }),
+            )()
         },
         mutationKey: ["clients", "delete", name],
         onSettled: invalidate,
@@ -199,12 +211,8 @@ function ClientTable(): JSX.Element {
     }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])
 
     const downloadExport = useCallback(() => {
-        // TODO(amphineko): this remaps current unflatten map to a flatten array from future
-        const json = JSON.stringify(
-            Array.from(clients ?? []).map(([name, { ipaddr, secret }]) => ({ name, ipaddr, secret })),
-        )
         const a = document.createElement("a")
-        a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(clients ?? [])], { type: "application/json" }))
         a.download = "clients.json"
         a.click()
         URL.revokeObjectURL(a.href)

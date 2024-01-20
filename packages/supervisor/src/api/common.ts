@@ -1,5 +1,5 @@
 import { BadRequestException, InternalServerErrorException } from "@nestjs/common"
-import { Name, NameType } from "@yonagi/common/common"
+import { Name, NameType } from "@yonagi/common/types/Name"
 import * as E from "fp-ts/lib/Either"
 import * as Task from "fp-ts/lib/Task"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -11,10 +11,16 @@ function mapLeftDecodeError<O extends Error, A>(f: (message: string) => O): (e: 
     return E.mapLeft(F.flow(PR.failure, (errors) => errors.join(", "), f))
 }
 
-function sanitizeName(name: string): string {
+export function validateNameOfRequest(name: string): E.Either<Error, Name> {
     return F.pipe(
         NameType.decode(name),
         mapLeftDecodeError((message) => new BadRequestException("Malformed name: " + message)),
+    )
+}
+
+function sanitizeName(name: string): Name {
+    return F.pipe(
+        validateNameOfRequest(name),
         E.getOrElse<Error, Name>((error) => {
             throw error
         }),
@@ -67,12 +73,7 @@ export function createOrUpdate<P extends t.Props, T = t.TypeC<P>, PT = t.Partial
             ),
         ),
 
-        TE.fold(
-            (error) => {
-                throw error
-            },
-            () => Task.of(undefined),
-        ),
+        resolveOrThrow(),
     )
 }
 
@@ -88,4 +89,10 @@ export function EncodeResponseWith<A, O>(codec: t.Type<A, O>): MethodDecorator {
             return codec.encode(result)
         }
     }
+}
+
+export function resolveOrThrow(): <T>(task: TE.TaskEither<Error, T>) => Task.Task<T> {
+    return TE.getOrElse((error) => {
+        throw error
+    })
 }

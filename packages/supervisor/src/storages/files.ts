@@ -1,12 +1,9 @@
 import { readFile, writeFile } from "fs/promises"
 
-import { Client, ClientType } from "@yonagi/common/clients"
-import { Name } from "@yonagi/common/common"
-import {
-    CallingStationId,
-    CallingStationIdAuthentication,
-    CallingStationIdAuthenticationType,
-} from "@yonagi/common/mpsks"
+import { CallingStationId } from "@yonagi/common/types/CallingStationId"
+import { Client, ClientType } from "@yonagi/common/types/Client"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
+import { Name } from "@yonagi/common/types/Name"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"
 import * as t from "io-ts"
@@ -96,7 +93,7 @@ export class FileBasedMPSKStorage extends AbstractMPSKStorage {
 
     constructor(jsonFilePath: string) {
         super()
-        this.storage = new JsonFileBasedStorage(jsonFilePath, t.array(CallingStationIdAuthenticationType))
+        this.storage = new JsonFileBasedStorage(jsonFilePath, t.array(MPSKType))
     }
 
     async all(): Promise<readonly CallingStationIdAuthentication[]> {

@@ -1,7 +1,7 @@
 "use server"
 
 import { ListClientsResponseType } from "@yonagi/common/api/clients"
-import { Client, ClientType } from "@yonagi/common/clients"
+import { Client, ClientType } from "@yonagi/common/types/Client"
 import * as t from "io-ts"
 
 import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"

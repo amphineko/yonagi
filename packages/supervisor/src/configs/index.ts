@@ -1,4 +1,4 @@
-import { Client } from "@yonagi/common/clients"
+import { Client } from "@yonagi/common/types/Client"
 
 import { generateRaddb } from "./raddb"
 

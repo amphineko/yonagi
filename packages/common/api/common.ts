@@ -1,6 +1,6 @@
 import * as t from "io-ts/lib/index"
 
-import { MapType } from "../common"
+import { MapType } from "../types/Map"
 
 export function MapFromRecordType<KT extends t.Type<string>, VT extends t.Mixed>(
     key: KT,

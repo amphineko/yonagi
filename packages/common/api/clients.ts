@@ -1,7 +1,8 @@
 import * as t from "io-ts/lib/index"
 
-import { ClientType } from "../clients"
-import { IpNetworkType, SecretType } from "../common"
+import { ClientType } from "../types/Client"
+import { IpNetworkType } from "../types/IpNetwork"
+import { SecretType } from "../types/Secret"
 
 export const CreateOrUpdateClientRequestProps = {
     ipaddr: IpNetworkType,

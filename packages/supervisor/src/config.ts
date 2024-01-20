@@ -1,5 +1,5 @@
 import { Injectable, Module } from "@nestjs/common"
-import { PkiMode } from "@yonagi/common/pki"
+import { PkiMode } from "@yonagi/common/types/PKI"
 
 @Injectable()
 export class Config {

@@ -1,6 +1,8 @@
 import * as t from "io-ts/lib/index"
 
-import { CallingStationIdAuthenticationType, CallingStationIdType, PSKType } from "../mpsks"
+import { CallingStationIdType } from "../types/CallingStationId"
+import { MPSKType } from "../types/MPSK"
+import { PSKType } from "../types/PSK"
 
 export const CreateOrUpdateMPSKRequestProps = {
     callingStationId: CallingStationIdType,
@@ -11,6 +13,6 @@ export const CreateMPSKRequestType = t.type(CreateOrUpdateMPSKRequestProps)
 
 export const UpdateMPSKRequestType = t.partial(CreateOrUpdateMPSKRequestProps)
 
-export const ListMPSKsResponseType = t.readonlyArray(CallingStationIdAuthenticationType)
+export const ListMPSKsResponseType = t.readonlyArray(MPSKType)
 
 export type ListMPSKsResponse = t.TypeOf<typeof ListMPSKsResponseType>

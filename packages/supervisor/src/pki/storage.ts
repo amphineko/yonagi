@@ -2,7 +2,7 @@ import { readFile, writeFile } from "fs/promises"
 
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import { MapFromRecordType } from "@yonagi/common/api/common"
-import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
+import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/types/SerialNumberString"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
