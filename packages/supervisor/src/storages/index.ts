@@ -1,9 +1,12 @@
-import { Client } from "@yonagi/common/clients"
-import { Name } from "@yonagi/common/common"
-import { CallingStationId, CallingStationIdAuthentication } from "@yonagi/common/mpsks"
+import { CallingStationId } from "@yonagi/common/types/CallingStationId"
+import { Client } from "@yonagi/common/types/Client"
+import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
+import { Name } from "@yonagi/common/types/Name"
 
 export abstract class AbstractClientStorage {
-    abstract all(): Promise<ReadonlyMap<Name, Client>>
+    abstract all(): Promise<readonly Client[]>
+
+    abstract bulkCreateOrUpdate(values: readonly Client[]): Promise<void>
 
     abstract createOrUpdateByName(name: Name, value: Client): Promise<void>
 
@@ -15,9 +18,11 @@ export abstract class AbstractClientStorage {
 export abstract class AbstractMPSKStorage {
     abstract all(): Promise<readonly CallingStationIdAuthentication[]>
 
+    abstract bulkCreateOrUpdate(values: readonly CallingStationIdAuthentication[]): Promise<void>
+
     abstract createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void>
 
-    abstract deleteByName(name: Name): Promise<void>
+    abstract deleteByName(name: Name): Promise<boolean>
 
     abstract getByCallingStationId(callingStationId: CallingStationId): Promise<CallingStationIdAuthentication | null>
 

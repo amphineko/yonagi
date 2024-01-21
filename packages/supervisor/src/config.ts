@@ -1,5 +1,5 @@
 import { Injectable, Module } from "@nestjs/common"
-import { PkiMode } from "@yonagi/common/pki"
+import { PkiMode } from "@yonagi/common/types/PKI"
 
 @Injectable()
 export class Config {
@@ -11,10 +11,13 @@ export class Config {
 
     public readonly raddbDirPath: string
 
+    public readonly typeormEnableSynchronize: boolean
+
     constructor() {
         this.dataDirPath = process.env.SUPERVISOR_DATA_DIR ?? "/data"
         this.outputDirPath = process.env.SUPERVISOR_OUTPUT_DIR ?? "/var/run"
         this.raddbDirPath = process.env.SUPERVISOR_RADDB_DIR ?? "/etc/freeradius/3.0"
+        this.typeormEnableSynchronize = process.env.SUPERVISOR_TYPEORM_SYNC?.toLowerCase() === "true"
     }
 
     public get authorizedMpsksFilePath(): string {
@@ -23,6 +26,10 @@ export class Config {
 
     public get clientsFilePath(): string {
         return `${this.dataDirPath}/clients.json`
+    }
+
+    public get sqliteFilePath(): string {
+        return `${this.dataDirPath}/states.sqlite3`
     }
 
     public get pkiPath(): string {

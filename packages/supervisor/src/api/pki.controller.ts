@@ -18,7 +18,7 @@ import {
     ExportClientCertificateP12RequestType,
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
-import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/pki"
+import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/types/SerialNumberString"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -27,7 +27,7 @@ import * as PR from "io-ts/lib/PathReporter"
 import * as pkijs from "pkijs"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith } from "./common"
+import { EncodeResponseWith, resolveOrThrow } from "./common"
 import { formatValueHex, getCertificateSerialAsHexString, parsePkijsRdn } from "../pki/exchange"
 import { Certificate, Pki } from "../pki/pki"
 
@@ -116,9 +116,7 @@ export class PkiController {
                 TE.tryCatch(() => this.pki.exportClientCertificateP12(serial, password), E.toError),
             ),
             TE.map((p12) => Buffer.from(p12).toString("base64")),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            resolveOrThrow(),
         )()
     }
 
@@ -132,9 +130,7 @@ export class PkiController {
             TE.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
             TE.flatMap((req) => TE.tryCatch(async () => await create(req), E.toError)),
             TE.map((cert) => this.getCertificateSummary(cert.cert)),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            resolveOrThrow(),
         )()
     }
 

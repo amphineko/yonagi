@@ -1,13 +1,28 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
 import {
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Inject,
+    Param,
+    Post,
+    UseInterceptors,
+    forwardRef,
+} from "@nestjs/common"
+import {
+    BulkCreateOrUpdateMPSKsRequestType,
     CreateMPSKRequestType,
     ListMPSKsResponse,
     ListMPSKsResponseType,
     UpdateMPSKRequestType,
 } from "@yonagi/common/api/mpsks"
+import * as E from "fp-ts/lib/Either"
+import * as TE from "fp-ts/lib/TaskEither"
+import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, createOrUpdate } from "./common"
+import { EncodeResponseWith, createOrUpdate, resolveOrThrow, validateNameOfRequest } from "./common"
 import { AbstractMPSKStorage } from "../storages"
 
 @Controller("/api/v1/mpsks")
@@ -29,7 +44,25 @@ export class MPSKController {
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
-        await this.mpskStorage.deleteByName(name)
+        await F.pipe(
+            TE.fromEither(validateNameOfRequest(name)),
+            TE.flatMap((name) => TE.tryCatch(async () => await this.mpskStorage.deleteByName(name), E.toError)),
+            resolveOrThrow(),
+        )()
+    }
+
+    @Post("/")
+    async import(@Body() body: unknown): Promise<void> {
+        await F.pipe(
+            TE.fromEither(BulkCreateOrUpdateMPSKsRequestType.decode(body)),
+            TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
+            TE.flatMap((clients) =>
+                TE.tryCatch(async () => {
+                    await this.mpskStorage.bulkCreateOrUpdate(clients)
+                }, E.toError),
+            ),
+            resolveOrThrow(),
+        )()
     }
 
     @Get("/")

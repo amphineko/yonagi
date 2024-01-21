@@ -1,6 +1,6 @@
-import { CallingStationId, CallingStationIdType } from "@yonagi/common/mpsks"
-import * as E from "fp-ts/lib/Either"
-import * as F from "fp-ts/lib/function"
+import { CallingStationId, CallingStationIdType } from "@yonagi/common/types/CallingStationId"
+import * as E from "fp-ts/Either"
+import * as F from "fp-ts/function"
 import * as t from "io-ts"
 
 const AttributeType = t.type({

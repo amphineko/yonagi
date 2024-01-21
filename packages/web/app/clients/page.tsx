@@ -1,6 +1,6 @@
 "use client"
 
-import { Add, Delete, Download, Save } from "@mui/icons-material"
+import { Add, Delete, Download, Save, UploadFile } from "@mui/icons-material"
 import {
     Button,
     IconButton,
@@ -12,8 +12,11 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material"
-import { Client, ClientType } from "@yonagi/common/clients"
-import { IpNetworkFromStringType, Name, NameType, SecretType } from "@yonagi/common/common"
+import { Client, ClientType } from "@yonagi/common/types/Client"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { Name, NameType } from "@yonagi/common/types/Name"
+import { SecretType } from "@yonagi/common/types/Secret"
+import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -22,9 +25,10 @@ import * as t from "io-ts/lib/index"
 import { useCallback, useMemo, useState } from "react"
 import { useMutation, useQuery } from "react-query"
 
-import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
+import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllClients } from "./actions"
 import { useQueryHelpers, useStagedNonce } from "../../lib/client"
 import { ValidatedTableCell } from "../../lib/tables"
+import { uploadAndDecodeJsonFile } from "../../lib/upload"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
@@ -62,13 +66,11 @@ function ClientTableRow({
     const [secret, setSecret] = useState<string>(initialValue.secret ?? "")
     const isSecretModified = useMemo(() => secret !== (initialValue.secret ?? ""), [initialValue.secret, secret])
 
-    const formValidation = useMemo<t.Validation<{ name: Name; client: Client }>>(
+    const formValidation = useMemo<t.Validation<Client>>(
         () =>
             F.pipe(
-                E.Do,
-                E.bind("name", () => NameType.decode(name)),
-                E.bind("ipaddr", () => IpNetworkFromStringType.decode(ipaddr)),
-                E.bind("client", ({ ipaddr }) => ClientType.decode({ ipaddr, secret })),
+                IpNetworkFromStringType.decode(ipaddr),
+                E.flatMap((ipaddr) => ClientType.decode({ name, ipaddr, secret })),
             ),
         [ipaddr, name, secret],
     )
@@ -79,7 +81,7 @@ function ClientTableRow({
             await F.pipe(
                 TE.fromEither(validation),
                 TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                TE.flatMap(({ name, client }) => TE.tryCatch(() => createOrUpdate(name, client), E.toError)),
+                TE.flatMap((client) => TE.tryCatch(() => createOrUpdate(client.name, client), E.toError)),
                 TE.getOrElse((e) => {
                     throw e
                 }),
@@ -88,9 +90,19 @@ function ClientTableRow({
         mutationKey: ["clients", "create-or-update", name],
         onSettled: invalidate,
     })
-    const { mutate: submitDelete } = useMutation<unknown, unknown, Name>({
+    const { mutate: submitDelete } = useMutation<unknown, unknown, string>({
         mutationFn: async (name) => {
-            await deleteRow(name)
+            await F.pipe(
+                // validate name
+                TE.fromEither(NameType.decode(name)),
+                TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                // submit delete
+                TE.flatMap((name) => TE.tryCatch(() => deleteRow(name), E.toError)),
+                // throw error of validation or delete
+                TE.getOrElse((e) => {
+                    throw e
+                }),
+            )()
         },
         mutationKey: ["clients", "delete", name],
         onSettled: invalidate,
@@ -163,11 +175,12 @@ function ClientTableRow({
 
 function ClientTable(): JSX.Element {
     const { nonce, increaseNonce, publishNonce } = useStagedNonce()
-    const { data: clients } = useQuery<ReadonlyMap<Name, Client>>({
+    const { data: clients } = useQuery<readonly Client[]>({
         queryFn: async () => await getAllClients(),
         queryKey: CLIENT_QUERY_KEY,
         onSettled: publishNonce,
     })
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
 
     const createOrUpdateByNameWithNonce = useCallback(
         async (name: Name, client: Client) => {
@@ -184,29 +197,37 @@ function ClientTable(): JSX.Element {
         [increaseNonce],
     )
 
+    const startImport = useCallback(async () => {
+        try {
+            await F.pipe(
+                uploadAndDecodeJsonFile(t.readonlyArray(ClientType)),
+                TE.flatMap((clients) => TE.tryCatch(() => bulkCreateOrUpdate(clients), E.toError)),
+                resolveOrThrow(),
+            )()
+        } finally {
+            await invalidate()
+        }
+    }, [invalidate])
+
     const tableItems = useMemo(() => {
         if (clients === undefined) {
             return []
         }
-        return Array.from(clients.entries()).map(([name, client]) => (
+        return clients.map((client) => (
             <ClientTableRow
                 createOrUpdate={createOrUpdateByNameWithNonce}
                 delete={deleteByNameWithNonce}
                 initialValue={client}
                 isCreateOrUpdate="update"
-                key={`${name}@${nonce}`}
-                name={name}
+                key={`${client.name}@${nonce}`}
+                name={client.name}
             />
         ))
     }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])
 
     const downloadExport = useCallback(() => {
-        // TODO(amphineko): this remaps current unflatten map to a flatten array from future
-        const json = JSON.stringify(
-            Array.from(clients ?? []).map(([name, { ipaddr, secret }]) => ({ name, ipaddr, secret })),
-        )
         const a = document.createElement("a")
-        a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(clients ?? [])], { type: "application/json" }))
         a.download = "clients.json"
         a.click()
         URL.revokeObjectURL(a.href)
@@ -236,8 +257,19 @@ function ClientTable(): JSX.Element {
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4}>
-                            <Button aria-label="Refresh" startIcon={<Download />} onClick={downloadExport}>
+                            <Button aria-label="Export" startIcon={<Download />} onClick={downloadExport}>
                                 Export
+                            </Button>
+                            <Button
+                                aria-label="Import"
+                                startIcon={<UploadFile />}
+                                onClick={() => {
+                                    startImport().catch((e) => {
+                                        alert(String(e))
+                                    })
+                                }}
+                            >
+                                Import
                             </Button>
                         </TableCell>
                     </TableRow>

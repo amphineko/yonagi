@@ -1,10 +1,9 @@
-import { Client } from "@yonagi/common/clients"
-import { Name } from "@yonagi/common/common"
+import { Client } from "@yonagi/common/types/Client"
 
 import { generateRaddb } from "./raddb"
 
 export interface RaddbGenParams {
-    clients: ReadonlyMap<Name, Client>
+    clients: readonly Client[]
     pki?: {
         ca: { cert: string }
         server: { cert: string; privKey: string }
