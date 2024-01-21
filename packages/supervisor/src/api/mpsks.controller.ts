@@ -1,5 +1,17 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
 import {
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Inject,
+    Param,
+    Post,
+    UseInterceptors,
+    forwardRef,
+} from "@nestjs/common"
+import {
+    BulkCreateOrUpdateMPSKsRequestType,
     CreateMPSKRequestType,
     ListMPSKsResponse,
     ListMPSKsResponseType,
@@ -35,6 +47,20 @@ export class MPSKController {
         await F.pipe(
             TE.fromEither(validateNameOfRequest(name)),
             TE.flatMap((name) => TE.tryCatch(async () => await this.mpskStorage.deleteByName(name), E.toError)),
+            resolveOrThrow(),
+        )()
+    }
+
+    @Post("/")
+    async import(@Body() body: unknown): Promise<void> {
+        await F.pipe(
+            TE.fromEither(BulkCreateOrUpdateMPSKsRequestType.decode(body)),
+            TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
+            TE.flatMap((clients) =>
+                TE.tryCatch(async () => {
+                    await this.mpskStorage.bulkCreateOrUpdate(clients)
+                }, E.toError),
+            ),
             resolveOrThrow(),
         )()
     }

@@ -16,3 +16,7 @@ export const UpdateMPSKRequestType = t.partial(CreateOrUpdateMPSKRequestProps)
 export const ListMPSKsResponseType = t.readonlyArray(MPSKType)
 
 export type ListMPSKsResponse = t.TypeOf<typeof ListMPSKsResponseType>
+
+export const BulkCreateOrUpdateMPSKsRequestType = t.readonlyArray(MPSKType)
+
+export type BulkCreateOrUpdateMPSKsRequest = t.TypeOf<typeof BulkCreateOrUpdateMPSKsRequestType>

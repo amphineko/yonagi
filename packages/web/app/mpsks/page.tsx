@@ -17,6 +17,7 @@ import { CallingStationIdType } from "@yonagi/common/types/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { PSKType } from "@yonagi/common/types/PSK"
+import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -25,9 +26,10 @@ import * as t from "io-ts/lib/index"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery } from "react-query"
 
-import { createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
+import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
 import { useQueryHelpers, useStagedNonce } from "../../lib/client"
 import { ValidatedTableCell } from "../../lib/tables"
+import { uploadAndDecodeJsonFile } from "../../lib/upload"
 
 const MPSK_QUERY_KEY = ["mpsks"]
 
@@ -197,6 +199,7 @@ function MpskTable(): JSX.Element {
         queryKey: MPSK_QUERY_KEY,
         onSettled: publishNonce,
     })
+    const { invalidate } = useQueryHelpers(MPSK_QUERY_KEY)
 
     const createOrUpdateByNameWithNonce = useCallback(
         async (name: Name, mpsk: CallingStationIdAuthentication) => {
@@ -237,6 +240,18 @@ function MpskTable(): JSX.Element {
         URL.revokeObjectURL(a.href)
     }, [mpsks])
 
+    const startImport = useCallback(async () => {
+        try {
+            await F.pipe(
+                uploadAndDecodeJsonFile(t.readonlyArray(MPSKType)),
+                TE.flatMap((clients) => TE.tryCatch(() => bulkCreateOrUpdate(clients), E.toError)),
+                resolveOrThrow(),
+            )()
+        } finally {
+            await invalidate()
+        }
+    }, [invalidate])
+
     return (
         <TableContainer>
             <Table>
@@ -263,6 +278,17 @@ function MpskTable(): JSX.Element {
                         <TableCell colSpan={4}>
                             <Button aria-label="Export" startIcon={<Download />} onClick={exportDownload}>
                                 Export
+                            </Button>
+                            <Button
+                                aria-label="Import"
+                                startIcon={<Download />}
+                                onClick={() => {
+                                    startImport().catch((e) => {
+                                        alert(String(e))
+                                    })
+                                }}
+                            >
+                                Import
                             </Button>
                         </TableCell>
                     </TableRow>

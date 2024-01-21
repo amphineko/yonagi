@@ -7,7 +7,7 @@ import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 import * as PR from "io-ts/lib/PathReporter"
-import { BaseEntity, Column, DataSource, Entity, EntityManager, PrimaryGeneratedColumn, Repository } from "typeorm"
+import { BaseEntity, Column, DataSource, Entity, EntityManager, In, PrimaryGeneratedColumn, Repository } from "typeorm"
 
 import { AbstractMPSKStorage } from ".."
 
@@ -52,6 +52,20 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
                 throw error
             }),
         )()
+    }
+
+    async bulkCreateOrUpdate(values: readonly CallingStationIdAuthentication[]): Promise<void> {
+        await this.manager.transaction(async (manager) => {
+            const names = values.map((value) => value.name)
+            const entities = await manager.findBy(SqlMPSKEntity, { name: In(names) })
+            for (const value of values) {
+                const entity = entities.find((entity) => entity.name === value.name) ?? manager.create(SqlMPSKEntity)
+                entity.name = value.name
+                entity.callingStationId = value.callingStationId
+                entity.psk = value.psk
+                await manager.save(entity)
+            }
+        })
     }
 
     async createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void> {

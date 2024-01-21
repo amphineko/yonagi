@@ -18,6 +18,8 @@ export abstract class AbstractClientStorage {
 export abstract class AbstractMPSKStorage {
     abstract all(): Promise<readonly CallingStationIdAuthentication[]>
 
+    abstract bulkCreateOrUpdate(values: readonly CallingStationIdAuthentication[]): Promise<void>
+
     abstract createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void>
 
     abstract deleteByName(name: Name): Promise<boolean>

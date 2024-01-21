@@ -113,6 +113,19 @@ export class FileBasedMPSKStorage extends AbstractMPSKStorage {
         return await this.storage.load()
     }
 
+    async bulkCreateOrUpdate(values: readonly CallingStationIdAuthentication[]): Promise<void> {
+        await this.mutate((record) => {
+            for (const mpsk of values) {
+                const existing = record.find((x) => x.name === mpsk.name)
+                if (existing) {
+                    Object.assign(existing, mpsk)
+                } else {
+                    record.push(mpsk)
+                }
+            }
+        })
+    }
+
     async createOrUpdateByName(name: Name, value: CallingStationIdAuthentication): Promise<void> {
         await this.mutate((record) => {
             for (const mpsk of record) {
