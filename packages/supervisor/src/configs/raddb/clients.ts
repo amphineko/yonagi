@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises"
 import * as path from "node:path"
 
-import { IpNetworkFromStringType } from "@yonagi/common/common"
-import * as RM from "fp-ts/lib/ReadonlyMap"
+import { IpNetworkFromStringType, NameType, SecretType } from "@yonagi/common/common"
+import * as RA from "fp-ts/lib/ReadonlyArray"
 import * as F from "fp-ts/lib/function"
 
 import { RaddbGenParams } from ".."
@@ -23,9 +23,9 @@ export async function generateClients({ clients, raddbPath }: RaddbGenParams): P
     const filename = path.join(raddbPath, "clients.conf")
     await F.pipe(
         clients,
-        RM.mapWithIndex((name, { ipaddr, secret }) =>
-            generateClient(name, IpNetworkFromStringType.encode(ipaddr), secret),
-        ),
+        RA.map(({ name, ipaddr, secret }) => [
+            generateClient(NameType.encode(name), IpNetworkFromStringType.encode(ipaddr), SecretType.encode(secret)),
+        ]),
         (fragments) => Array.from(fragments.values()).join("\n"),
         (content) => writeFile(filename, content, { encoding: "utf-8" }),
     )

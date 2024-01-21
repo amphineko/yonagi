@@ -1,6 +1,7 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { Client } from "@yonagi/common/clients"
+import { Client, ClientType } from "@yonagi/common/clients"
 import { IpNetworkFromStringType, Name, NameType, SecretType } from "@yonagi/common/common"
+import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -37,37 +38,30 @@ export class SqlClientStorage extends AbstractClientStorage {
         this.repository = dataSource.manager.getRepository(SqlClientEntity)
     }
 
-    async all(): Promise<ReadonlyMap<Name, Client>> {
+    async all(): Promise<readonly Client[]> {
         return await F.pipe(
             TE.tryCatch(() => this.repository.find(), E.toError),
             TE.flatMapEither(
                 F.flow(
-                    A.map((entity) =>
-                        F.pipe(
-                            E.Do,
-                            E.bind("name", () => NameType.decode(entity.name)),
-                            E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                            E.bind("client", () => this.decodeClientEntity(entity)),
-                            E.map(({ name, client }) => [name, client] as [Name, Client]),
-                        ),
-                    ),
+                    A.map((entity) => this.decodeClientEntity(entity)),
                     A.sequence(E.Applicative),
                 ),
             ),
-            TE.map((entries) => new Map(entries)),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            resolveOrThrow(),
         )()
     }
 
     async createOrUpdateByName(name: Name, value: Client): Promise<void> {
+        if (name !== value.name) {
+            throw new Error(`Queried name doesn't match with the entity's name field: ${name} !== ${value.name}`)
+        }
+
         await this.manager.transaction(async (manager) => {
             await manager
                 .findOneBy(SqlClientEntity, { name })
                 .then((entity) => entity ?? manager.create(SqlClientEntity))
                 .then((entity) => {
-                    entity.name = name
+                    entity.name = NameType.encode(name)
                     entity.ipaddr = IpNetworkFromStringType.encode(value.ipaddr)
                     entity.secret = SecretType.encode(value.secret)
                     return manager.save(entity)
@@ -93,11 +87,10 @@ export class SqlClientStorage extends AbstractClientStorage {
         )()
     }
 
-    private decodeClientEntity({ ipaddr, secret }: SqlClientEntity): E.Either<Error, Client> {
+    private decodeClientEntity({ name, ipaddr, secret }: SqlClientEntity): E.Either<Error, Client> {
         return F.pipe(
-            E.Do,
-            E.bind("ipaddr", () => IpNetworkFromStringType.decode(ipaddr)),
-            E.bind("secret", () => SecretType.decode(secret)),
+            IpNetworkFromStringType.decode(ipaddr),
+            E.flatMap((ipaddr) => ClientType.decode({ name, ipaddr, secret })),
             E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
         )
     }

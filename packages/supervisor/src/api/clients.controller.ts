@@ -23,7 +23,7 @@ export class RadiusClientController {
             CreateClientRequestType,
             UpdateClientRequestType,
             (name) => this.clientStorage.getByName(name),
-            (name, value) => this.clientStorage.createOrUpdateByName(name, value),
+            (name, value) => this.clientStorage.createOrUpdateByName(name, { name, ...value }),
         )()
     }
 

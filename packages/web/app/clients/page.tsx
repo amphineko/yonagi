@@ -62,13 +62,11 @@ function ClientTableRow({
     const [secret, setSecret] = useState<string>(initialValue.secret ?? "")
     const isSecretModified = useMemo(() => secret !== (initialValue.secret ?? ""), [initialValue.secret, secret])
 
-    const formValidation = useMemo<t.Validation<{ name: Name; client: Client }>>(
+    const formValidation = useMemo<t.Validation<Client>>(
         () =>
             F.pipe(
-                E.Do,
-                E.bind("name", () => NameType.decode(name)),
-                E.bind("ipaddr", () => IpNetworkFromStringType.decode(ipaddr)),
-                E.bind("client", ({ ipaddr }) => ClientType.decode({ ipaddr, secret })),
+                IpNetworkFromStringType.decode(ipaddr),
+                E.flatMap((ipaddr) => ClientType.decode({ name, ipaddr, secret })),
             ),
         [ipaddr, name, secret],
     )
@@ -79,7 +77,7 @@ function ClientTableRow({
             await F.pipe(
                 TE.fromEither(validation),
                 TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                TE.flatMap(({ name, client }) => TE.tryCatch(() => createOrUpdate(name, client), E.toError)),
+                TE.flatMap((client) => TE.tryCatch(() => createOrUpdate(client.name, client), E.toError)),
                 TE.getOrElse((e) => {
                     throw e
                 }),
@@ -163,7 +161,7 @@ function ClientTableRow({
 
 function ClientTable(): JSX.Element {
     const { nonce, increaseNonce, publishNonce } = useStagedNonce()
-    const { data: clients } = useQuery<ReadonlyMap<Name, Client>>({
+    const { data: clients } = useQuery<readonly Client[]>({
         queryFn: async () => await getAllClients(),
         queryKey: CLIENT_QUERY_KEY,
         onSettled: publishNonce,
@@ -188,14 +186,14 @@ function ClientTable(): JSX.Element {
         if (clients === undefined) {
             return []
         }
-        return Array.from(clients.entries()).map(([name, client]) => (
+        return clients.map((client) => (
             <ClientTableRow
                 createOrUpdate={createOrUpdateByNameWithNonce}
                 delete={deleteByNameWithNonce}
                 initialValue={client}
                 isCreateOrUpdate="update"
-                key={`${name}@${nonce}`}
-                name={name}
+                key={`${client.name}@${nonce}`}
+                name={client.name}
             />
         ))
     }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])

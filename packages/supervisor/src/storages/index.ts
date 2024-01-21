@@ -3,7 +3,7 @@ import { Name } from "@yonagi/common/common"
 import { CallingStationId, CallingStationIdAuthentication } from "@yonagi/common/mpsks"
 
 export abstract class AbstractClientStorage {
-    abstract all(): Promise<ReadonlyMap<Name, Client>>
+    abstract all(): Promise<readonly Client[]>
 
     abstract createOrUpdateByName(name: Name, value: Client): Promise<void>
 
