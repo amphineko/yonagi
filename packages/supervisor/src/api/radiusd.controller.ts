@@ -34,4 +34,9 @@ export class RadiusdController {
     async reload(): Promise<void> {
         await this.radiusd.reload()
     }
+
+    @Post("/restart")
+    async restart(): Promise<void> {
+        await this.radiusd.restart()
+    }
 }
