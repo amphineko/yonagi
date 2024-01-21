@@ -1,7 +1,17 @@
 "use client"
 
-import { Add, Delete, Save } from "@mui/icons-material"
-import { IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material"
+import { Add, Delete, Download, Save } from "@mui/icons-material"
+import {
+    Button,
+    IconButton,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableFooter,
+    TableHead,
+    TableRow,
+} from "@mui/material"
 import { Client, ClientType } from "@yonagi/common/clients"
 import { IpNetworkFromStringType, Name, NameType, SecretType } from "@yonagi/common/common"
 import * as E from "fp-ts/lib/Either"
@@ -190,6 +200,18 @@ function ClientTable(): JSX.Element {
         ))
     }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])
 
+    const downloadExport = useCallback(() => {
+        // TODO(amphineko): this remaps current unflatten map to a flatten array from future
+        const json = JSON.stringify(
+            Array.from(clients ?? []).map(([name, { ipaddr, secret }]) => ({ name, ipaddr, secret })),
+        )
+        const a = document.createElement("a")
+        a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+        a.download = "clients.json"
+        a.click()
+        URL.revokeObjectURL(a.href)
+    }, [clients])
+
     return (
         <TableContainer>
             <Table>
@@ -211,6 +233,15 @@ function ClientTable(): JSX.Element {
                         key={`create@${nonce}`}
                     />
                 </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell colSpan={4}>
+                            <Button aria-label="Refresh" startIcon={<Download />} onClick={downloadExport}>
+                                Export
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                </TableFooter>
             </Table>
         </TableContainer>
     )

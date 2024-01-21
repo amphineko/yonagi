@@ -1,7 +1,18 @@
 "use client"
 
-import { Add, Delete, Save } from "@mui/icons-material"
-import { IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from "@mui/material"
+import { Add, Delete, Download, Save } from "@mui/icons-material"
+import {
+    Button,
+    IconButton,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableFooter,
+    TableHead,
+    TableRow,
+    Tooltip,
+} from "@mui/material"
 import { Name, NameType } from "@yonagi/common/common"
 import {
     CallingStationIdAuthentication,
@@ -213,6 +224,14 @@ function MpskTable(): JSX.Element {
         ))
     }, [createOrUpdateByNameWithNonce, deleteByNameWithNonce, mpsks, nonce])
 
+    const exportDownload = useCallback(() => {
+        const a = document.createElement("a")
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(mpsks)], { type: "application/json" }))
+        a.download = "mpsks.json"
+        a.click()
+        URL.revokeObjectURL(a.href)
+    }, [mpsks])
+
     return (
         <TableContainer>
             <Table>
@@ -234,6 +253,15 @@ function MpskTable(): JSX.Element {
                         key={`create-${nonce}`}
                     />
                 </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell colSpan={4}>
+                            <Button aria-label="Export" startIcon={<Download />} onClick={exportDownload}>
+                                Export
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                </TableFooter>
             </Table>
         </TableContainer>
     )
