@@ -6,6 +6,8 @@ import { Name } from "@yonagi/common/types/Name"
 export abstract class AbstractClientStorage {
     abstract all(): Promise<readonly Client[]>
 
+    abstract bulkCreateOrUpdate(values: readonly Client[]): Promise<void>
+
     abstract createOrUpdateByName(name: Name, value: Client): Promise<void>
 
     abstract deleteByName(name: Name): Promise<boolean>

@@ -52,6 +52,19 @@ export class FileBasedClientStorage extends AbstractClientStorage {
         return await this.storage.load()
     }
 
+    async bulkCreateOrUpdate(values: readonly Client[]): Promise<void> {
+        await this.mutate((clients) => {
+            for (const value of values) {
+                const existing = clients.find((client) => client.name === value.name)
+                if (existing) {
+                    Object.assign(existing, value)
+                } else {
+                    clients.push(value)
+                }
+            }
+        })
+    }
+
     async createOrUpdateByName(name: Name, value: Client): Promise<void> {
         await this.mutate((clients) => {
             const existing = clients.find((client) => client.name === name)

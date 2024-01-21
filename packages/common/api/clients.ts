@@ -16,3 +16,7 @@ export const UpdateClientRequestType = t.partial(CreateOrUpdateClientRequestProp
 export const ListClientsResponseType = t.readonlyArray(ClientType)
 
 export type ListClientsResponse = t.TypeOf<typeof ListClientsResponseType>
+
+export const BulkCreateOrUpdateClientsRequestType = t.readonlyArray(ClientType)
+
+export type BulkCreateOrUpdateClientsRequest = t.TypeOf<typeof BulkCreateOrUpdateClientsRequestType>

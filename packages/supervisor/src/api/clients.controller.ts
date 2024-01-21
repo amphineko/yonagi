@@ -1,5 +1,17 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, UseInterceptors, forwardRef } from "@nestjs/common"
 import {
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Inject,
+    Param,
+    Post,
+    UseInterceptors,
+    forwardRef,
+} from "@nestjs/common"
+import {
+    BulkCreateOrUpdateClientsRequestType,
     CreateClientRequestType,
     ListClientsResponse,
     ListClientsResponseType,
@@ -35,6 +47,20 @@ export class RadiusClientController {
         await F.pipe(
             TE.fromEither(validateNameOfRequest(name)),
             TE.flatMap((name) => TE.tryCatch(async () => await this.clientStorage.deleteByName(name), E.toError)),
+            resolveOrThrow(),
+        )()
+    }
+
+    @Post("/")
+    async import(@Body() body: unknown): Promise<void> {
+        await F.pipe(
+            TE.fromEither(BulkCreateOrUpdateClientsRequestType.decode(body)),
+            TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
+            TE.flatMap((clients) =>
+                TE.tryCatch(async () => {
+                    await this.clientStorage.bulkCreateOrUpdate(clients)
+                }, E.toError),
+            ),
             resolveOrThrow(),
         )()
     }

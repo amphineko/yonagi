@@ -1,6 +1,6 @@
 "use client"
 
-import { Add, Delete, Download, Save } from "@mui/icons-material"
+import { Add, Delete, Download, Save, UploadFile } from "@mui/icons-material"
 import {
     Button,
     IconButton,
@@ -16,6 +16,7 @@ import { Client, ClientType } from "@yonagi/common/types/Client"
 import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
+import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -24,9 +25,10 @@ import * as t from "io-ts/lib/index"
 import { useCallback, useMemo, useState } from "react"
 import { useMutation, useQuery } from "react-query"
 
-import { createOrUpdateByName, deleteByName, getAllClients } from "./actions"
+import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllClients } from "./actions"
 import { useQueryHelpers, useStagedNonce } from "../../lib/client"
 import { ValidatedTableCell } from "../../lib/tables"
+import { uploadAndDecodeJsonFile } from "../../lib/upload"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
@@ -178,6 +180,7 @@ function ClientTable(): JSX.Element {
         queryKey: CLIENT_QUERY_KEY,
         onSettled: publishNonce,
     })
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
 
     const createOrUpdateByNameWithNonce = useCallback(
         async (name: Name, client: Client) => {
@@ -193,6 +196,18 @@ function ClientTable(): JSX.Element {
         },
         [increaseNonce],
     )
+
+    const startImport = useCallback(async () => {
+        try {
+            await F.pipe(
+                uploadAndDecodeJsonFile(t.readonlyArray(ClientType)),
+                TE.flatMap((clients) => TE.tryCatch(() => bulkCreateOrUpdate(clients), E.toError)),
+                resolveOrThrow(),
+            )()
+        } finally {
+            await invalidate()
+        }
+    }, [invalidate])
 
     const tableItems = useMemo(() => {
         if (clients === undefined) {
@@ -242,8 +257,19 @@ function ClientTable(): JSX.Element {
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4}>
-                            <Button aria-label="Refresh" startIcon={<Download />} onClick={downloadExport}>
+                            <Button aria-label="Export" startIcon={<Download />} onClick={downloadExport}>
                                 Export
+                            </Button>
+                            <Button
+                                aria-label="Import"
+                                startIcon={<UploadFile />}
+                                onClick={() => {
+                                    startImport().catch((e) => {
+                                        alert(String(e))
+                                    })
+                                }}
+                            >
+                                Import
                             </Button>
                         </TableCell>
                     </TableRow>
