@@ -5,6 +5,7 @@ import {
     Lock,
     Notes,
     Password,
+    PowerSettingsNew,
     Refresh,
     StopCircle,
     SvgIconComponent,
@@ -28,10 +29,10 @@ import CssBaseline from "@mui/material/CssBaseline"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ReactNode, useEffect, useMemo, useState } from "react"
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react"
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "react-query"
 
-import { reload as doReload, getStatus } from "./actions"
+import { getStatus, reloadRadiusd, restartRadiusd } from "./actions"
 
 const queryClient = new QueryClient()
 
@@ -49,27 +50,48 @@ function humanize(seconds: number) {
     }
 }
 
-function ReloadButton(): JSX.Element {
+function RadiusdMenu(): JSX.Element {
     const queryClient = useQueryClient()
-    const { mutate: reload } = useMutation({
-        mutationFn: doReload,
+    const onSuccess = useCallback(async () => {
+        await queryClient.invalidateQueries(["index", "radiusd", "status"])
+    }, [queryClient])
+
+    const { mutate: mutateReload } = useMutation({
+        mutationFn: reloadRadiusd,
         mutationKey: ["index", "radiusd", "reload"],
-        onSuccess: async () => {
-            await queryClient.invalidateQueries(["index", "radiusd", "status"])
-        },
+        onSuccess,
+    })
+
+    const { mutate: mutateRestart } = useMutation({
+        mutationFn: restartRadiusd,
+        mutationKey: ["index", "radiusd", "restart"],
+        onSuccess,
     })
 
     return (
-        <IconButton
-            color="inherit"
-            onClick={() => {
-                reload()
-            }}
-        >
-            <Tooltip title="Reload">
-                <Refresh />
-            </Tooltip>
-        </IconButton>
+        <Box>
+            <IconButton
+                color="inherit"
+                onClick={() => {
+                    mutateReload()
+                }}
+            >
+                <Tooltip title="Reload">
+                    <Refresh />
+                </Tooltip>
+            </IconButton>
+
+            <IconButton
+                color="inherit"
+                onClick={() => {
+                    mutateRestart()
+                }}
+            >
+                <Tooltip title="Restart">
+                    <PowerSettingsNew />
+                </Tooltip>
+            </IconButton>
+        </Box>
     )
 }
 
@@ -199,7 +221,7 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
                             </FlexBox>
                             <FlexBox key="status" sx={{ alignItems: "center", gap: "0.5em" }}>
                                 <StatusChip />
-                                <ReloadButton />
+                                <RadiusdMenu />
                             </FlexBox>
                         </Toolbar>
                     </AppBar>
