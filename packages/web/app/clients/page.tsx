@@ -209,6 +209,7 @@ function ClientTable(): JSX.Element {
         a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
         a.download = "clients.json"
         a.click()
+        URL.revokeObjectURL(a.href)
     }, [clients])
 
     return (
