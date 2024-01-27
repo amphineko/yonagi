@@ -1,6 +1,6 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import { Client, ClientType } from "@yonagi/common/types/Client"
-import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
 import * as A from "fp-ts/lib/Array"

@@ -1,7 +1,11 @@
 "use server"
 
-import { BulkCreateOrUpdateClientsRequestType, ListClientsResponseType } from "@yonagi/common/api/clients"
-import { Client, ClientType } from "@yonagi/common/types/Client"
+import {
+    BulkCreateOrUpdateClientsRequestType,
+    CreateOrUpdateClientRequestType,
+    ListClientsResponseType,
+} from "@yonagi/common/api/clients"
+import { Client } from "@yonagi/common/types/Client"
 import * as t from "io-ts"
 
 import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"
@@ -11,7 +15,7 @@ export async function bulkCreateOrUpdate(clients: readonly Client[]): Promise<vo
 }
 
 export async function createOrUpdateByName(name: string, client: Client): Promise<void> {
-    await postTypedEndpoint(t.any, ClientType, `api/v1/clients/${name}`, client)
+    await postTypedEndpoint(t.any, CreateOrUpdateClientRequestType, `api/v1/clients/${name}`, client)
 }
 
 export async function deleteByName(name: string): Promise<void> {

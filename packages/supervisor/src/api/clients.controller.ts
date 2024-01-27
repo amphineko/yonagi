@@ -12,17 +12,17 @@ import {
 } from "@nestjs/common"
 import {
     BulkCreateOrUpdateClientsRequestType,
-    CreateClientRequestType,
+    CreateOrUpdateClientRequestType,
     ListClientsResponse,
     ListClientsResponseType,
-    UpdateClientRequestType,
 } from "@yonagi/common/api/clients"
+import { Client } from "@yonagi/common/types/Client"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, createOrUpdate, resolveOrThrow, validateNameOfRequest } from "./common"
+import { EncodeResponseWith, mapLeftDecodeError, resolveOrThrow, validateNameOfRequest } from "./common"
 import { AbstractClientStorage } from "../storages"
 
 @Controller("/api/v1/clients")
@@ -32,13 +32,33 @@ export class RadiusClientController {
 
     @Post("/:name")
     async createOrUpdate(@Param("name") rawName: string, @Body() body: unknown): Promise<void> {
-        await createOrUpdate(
-            rawName,
-            body,
-            CreateClientRequestType,
-            UpdateClientRequestType,
-            (name) => this.clientStorage.getByName(name),
-            (name, value) => this.clientStorage.createOrUpdateByName(name, { name, ...value }),
+        await F.pipe(
+            E.Do,
+            E.bind("name", () => validateNameOfRequest(rawName)),
+            E.bind(
+                "value",
+                (): E.Either<Error, Client> =>
+                    F.pipe(
+                        CreateOrUpdateClientRequestType.decode(body),
+                        mapLeftDecodeError((message) => new BadRequestException(message)),
+                    ),
+            ),
+            E.tap(
+                F.flow(
+                    E.fromPredicate(
+                        ({ name, value }) => name === value.name,
+                        () => "Name in path and body must be same",
+                    ),
+                    E.orElse((error) => E.left(new BadRequestException(error))),
+                ),
+            ),
+            TE.fromEither,
+            TE.flatMap(({ name, value }) =>
+                TE.tryCatch(async () => {
+                    await this.clientStorage.createOrUpdateByName(name, value)
+                }, E.toError),
+            ),
+            resolveOrThrow(),
         )()
     }
 
@@ -52,7 +72,7 @@ export class RadiusClientController {
     }
 
     @Post("/")
-    async import(@Body() body: unknown): Promise<void> {
+    async bulkCreateOrUpdate(@Body() body: unknown): Promise<void> {
         await F.pipe(
             TE.fromEither(BulkCreateOrUpdateClientsRequestType.decode(body)),
             TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
@@ -68,6 +88,10 @@ export class RadiusClientController {
     @Get("/")
     @EncodeResponseWith(ListClientsResponseType)
     async list(): Promise<ListClientsResponse> {
-        return await this.clientStorage.all()
+        return (await this.clientStorage.all()).map((client) => ({
+            name: client.name,
+            ipaddr: client.ipaddr,
+            secret: client.secret,
+        }))
     }
 }

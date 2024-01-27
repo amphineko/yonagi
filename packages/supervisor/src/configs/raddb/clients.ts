@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises"
 import * as path from "node:path"
 
-import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
 import * as RA from "fp-ts/lib/ReadonlyArray"

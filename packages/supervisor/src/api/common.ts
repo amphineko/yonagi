@@ -7,7 +7,9 @@ import * as F from "fp-ts/lib/function"
 import * as PR from "io-ts/lib/PathReporter"
 import * as t from "io-ts/lib/index"
 
-function mapLeftDecodeError<O extends Error, A>(f: (message: string) => O): (e: t.Validation<A>) => E.Either<O, A> {
+export function mapLeftDecodeError<O extends Error, A>(
+    f: (message: string) => O,
+): (e: t.Validation<A>) => E.Either<O, A> {
     return E.mapLeft(F.flow(PR.failure, (errors) => errors.join(", "), f))
 }
 

@@ -1,8 +1,7 @@
 "use client"
 
-import { Add, Delete, Download, Save, UploadFile } from "@mui/icons-material"
+import { Add, Delete, Save } from "@mui/icons-material"
 import {
-    Button,
     IconButton,
     Table,
     TableBody,
@@ -12,11 +11,11 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material"
+import { ListClientsResponseType } from "@yonagi/common/api/clients"
 import { Client, ClientType } from "@yonagi/common/types/Client"
-import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetwork"
+import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -28,7 +27,7 @@ import { useMutation, useQuery } from "react-query"
 import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllClients } from "./actions"
 import { useQueryHelpers, useStagedNonce } from "../../lib/client"
 import { ValidatedTableCell } from "../../lib/tables"
-import { uploadAndDecodeJsonFile } from "../../lib/upload"
+import { ExportButton, ImportButton } from "../../lib/upload"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
@@ -189,6 +188,7 @@ function ClientTable(): JSX.Element {
         },
         [increaseNonce],
     )
+
     const deleteByNameWithNonce = useCallback(
         async (name: Name) => {
             await deleteByName(name)
@@ -197,17 +197,14 @@ function ClientTable(): JSX.Element {
         [increaseNonce],
     )
 
-    const startImport = useCallback(async () => {
-        try {
-            await F.pipe(
-                uploadAndDecodeJsonFile(t.readonlyArray(ClientType)),
-                TE.flatMap((clients) => TE.tryCatch(() => bulkCreateOrUpdate(clients), E.toError)),
-                resolveOrThrow(),
-            )()
-        } finally {
-            await invalidate()
-        }
-    }, [invalidate])
+    const { mutate: bulkCreateOrUpdateWithNonce } = useMutation({
+        mutationFn: async (clients: readonly Client[]) => {
+            await bulkCreateOrUpdate(clients)
+            increaseNonce()
+        },
+        mutationKey: ["clients", "bulk-create-or-update"],
+        onSettled: invalidate,
+    })
 
     const tableItems = useMemo(() => {
         if (clients === undefined) {
@@ -224,14 +221,6 @@ function ClientTable(): JSX.Element {
             />
         ))
     }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])
-
-    const downloadExport = useCallback(() => {
-        const a = document.createElement("a")
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(clients ?? [])], { type: "application/json" }))
-        a.download = "clients.json"
-        a.click()
-        URL.revokeObjectURL(a.href)
-    }, [clients])
 
     return (
         <TableContainer>
@@ -257,20 +246,17 @@ function ClientTable(): JSX.Element {
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4}>
-                            <Button aria-label="Export" startIcon={<Download />} onClick={downloadExport}>
-                                Export
-                            </Button>
-                            <Button
-                                aria-label="Import"
-                                startIcon={<UploadFile />}
-                                onClick={() => {
-                                    startImport().catch((e) => {
-                                        alert(String(e))
-                                    })
+                            <ExportButton
+                                data={clients ?? []}
+                                encoder={ListClientsResponseType}
+                                filename="clients.json"
+                            />
+                            <ImportButton
+                                decoder={ListClientsResponseType}
+                                onImport={(clients) => {
+                                    bulkCreateOrUpdateWithNonce(clients)
                                 }}
-                            >
-                                Import
-                            </Button>
+                            />
                         </TableCell>
                     </TableRow>
                 </TableFooter>

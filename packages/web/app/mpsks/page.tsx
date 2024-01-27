@@ -1,8 +1,7 @@
 "use client"
 
-import { Add, Delete, Download, Save } from "@mui/icons-material"
+import { Add, Delete, Save } from "@mui/icons-material"
 import {
-    Button,
     IconButton,
     Table,
     TableBody,
@@ -13,11 +12,11 @@ import {
     TableRow,
     Tooltip,
 } from "@mui/material"
+import { BulkCreateOrUpdateMPSKsRequestType, ListMPSKsResponseType } from "@yonagi/common/api/mpsks"
 import { CallingStationIdType } from "@yonagi/common/types/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { PSKType } from "@yonagi/common/types/PSK"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -29,7 +28,7 @@ import { useMutation, useQuery } from "react-query"
 import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllMpsks } from "./actions"
 import { useQueryHelpers, useStagedNonce } from "../../lib/client"
 import { ValidatedTableCell } from "../../lib/tables"
-import { uploadAndDecodeJsonFile } from "../../lib/upload"
+import { ExportButton, ImportButton } from "../../lib/upload"
 
 const MPSK_QUERY_KEY = ["mpsks"]
 
@@ -208,6 +207,7 @@ function MpskTable(): JSX.Element {
         },
         [increaseNonce],
     )
+
     const deleteByNameWithNonce = useCallback(
         async (name: Name) => {
             await deleteByName(name)
@@ -215,6 +215,15 @@ function MpskTable(): JSX.Element {
         },
         [increaseNonce],
     )
+
+    const { mutate: bulkCreateOrUpdateWithNonce } = useMutation({
+        mutationFn: async (clients: readonly CallingStationIdAuthentication[]) => {
+            await bulkCreateOrUpdate(clients)
+            increaseNonce()
+        },
+        mutationKey: ["mpsks", "bulk-create-or-update"],
+        onSettled: invalidate,
+    })
 
     const tableItems = useMemo(() => {
         if (mpsks === undefined) {
@@ -231,26 +240,6 @@ function MpskTable(): JSX.Element {
             />
         ))
     }, [createOrUpdateByNameWithNonce, deleteByNameWithNonce, mpsks, nonce])
-
-    const exportDownload = useCallback(() => {
-        const a = document.createElement("a")
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(mpsks)], { type: "application/json" }))
-        a.download = "mpsks.json"
-        a.click()
-        URL.revokeObjectURL(a.href)
-    }, [mpsks])
-
-    const startImport = useCallback(async () => {
-        try {
-            await F.pipe(
-                uploadAndDecodeJsonFile(t.readonlyArray(MPSKType)),
-                TE.flatMap((clients) => TE.tryCatch(() => bulkCreateOrUpdate(clients), E.toError)),
-                resolveOrThrow(),
-            )()
-        } finally {
-            await invalidate()
-        }
-    }, [invalidate])
 
     return (
         <TableContainer>
@@ -276,20 +265,11 @@ function MpskTable(): JSX.Element {
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4}>
-                            <Button aria-label="Export" startIcon={<Download />} onClick={exportDownload}>
-                                Export
-                            </Button>
-                            <Button
-                                aria-label="Import"
-                                startIcon={<Download />}
-                                onClick={() => {
-                                    startImport().catch((e) => {
-                                        alert(String(e))
-                                    })
-                                }}
-                            >
-                                Import
-                            </Button>
+                            <ExportButton data={mpsks ?? []} encoder={ListMPSKsResponseType} filename="mpsks.json" />
+                            <ImportButton
+                                decoder={BulkCreateOrUpdateMPSKsRequestType}
+                                onImport={bulkCreateOrUpdateWithNonce}
+                            />
                         </TableCell>
                     </TableRow>
                 </TableFooter>
