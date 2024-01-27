@@ -34,6 +34,14 @@ export default function NotificationDebugPage() {
                         >
                             Success with new key
                         </Button>
+                        <Button
+                            onClick={() => {
+                                notifySuccess("Success without message", undefined, key)
+                                newKey()
+                            }}
+                        >
+                            Success without message
+                        </Button>
                     </Box>
                     <Box>
                         <Button

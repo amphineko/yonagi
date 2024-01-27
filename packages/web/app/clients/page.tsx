@@ -16,54 +16,131 @@ import { Client, ClientType } from "@yonagi/common/types/Client"
 import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
+import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
-import * as PR from "io-ts/lib/PathReporter"
 import * as t from "io-ts/lib/index"
-import { useCallback, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useMutation, useQuery } from "react-query"
 
 import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllClients } from "./actions"
-import { useQueryHelpers, useStagedNonce } from "../../lib/client"
+import { useQueryHelpers } from "../../lib/client"
+import { mapLeftValidationError } from "../../lib/fp"
+import { useNotifications } from "../../lib/notifications"
 import { ValidatedTableCell } from "../../lib/tables"
 import { ExportButton, ImportButton } from "../../lib/upload"
 
 const CLIENT_QUERY_KEY = ["clients"]
 
+function useBulkCreateOrUpdate() {
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
+    const { notifyError, notifySuccess } = useNotifications()
+    return useMutation({
+        mutationFn: async (clients: readonly Client[]) => {
+            await bulkCreateOrUpdate(clients)
+        },
+        mutationKey: ["clients", "bulk-update"],
+        onError: (error) => {
+            notifyError(`Failed importing clients`, String(error))
+        },
+        onSuccess: (_, clients) => {
+            notifySuccess(`Imported ${clients.length} clients`)
+        },
+        onSettled: invalidate,
+    })
+}
+
+function useCreateOrUpdateClient({ name, onSuccess }: { name: string; onSuccess: () => void }) {
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
+    const { notifyError, notifySuccess } = useNotifications()
+    return useMutation({
+        mutationFn: async (validation: t.Validation<Client>) => {
+            await F.pipe(
+                validation,
+                mapLeftValidationError((error) => new Error(`Cannot validate input: ${error}`)),
+                TE.fromEither,
+                TE.flatMap((client) =>
+                    TE.tryCatch(
+                        () => createOrUpdateByName(name, client),
+                        (error) => new Error(String(error)),
+                    ),
+                ),
+                resolveOrThrow(),
+            )()
+        },
+        mutationKey: ["clients", "update", name],
+        onError: (error) => {
+            notifyError(`Failed updating client ${name}`, String(error))
+        },
+        onSuccess: () => {
+            notifySuccess(`Updated client ${name}`)
+            setTimeout(onSuccess, 0)
+        },
+        onSettled: invalidate,
+    })
+}
+
+function useDeleteClient(name: string) {
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
+    const { notifyError, notifySuccess } = useNotifications()
+    return useMutation<unknown, unknown, string>({
+        mutationFn: (name) => deleteByName(name),
+        mutationKey: ["clients", "delete", name],
+        onError: (error, name) => {
+            notifyError(`Failed deleting client ${name}`, String(error))
+        },
+        onSuccess: (_, name) => {
+            notifySuccess(`Deleted client ${name}`, "")
+        },
+        onSettled: invalidate,
+    })
+}
+
+function useListClients() {
+    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
+    const { notifyError } = useNotifications()
+    return useQuery({
+        queryFn: async (): Promise<readonly Client[]> => await getAllClients(),
+        queryKey: CLIENT_QUERY_KEY,
+        onError: (error) => {
+            notifyError("Failed reading clients", String(error))
+        },
+        onSettled: () => {
+            void invalidate()
+        },
+    })
+}
+
 function ClientTableRow({
-    createOrUpdate,
-    delete: deleteRow,
-    initialValue,
     isCreateOrUpdate,
-    name: initalName,
+    name: serverName,
+    serverValue,
 }: {
-    createOrUpdate: (name: Name, client: Client) => Promise<void>
-    delete: (name: Name) => Promise<void>
-    initialValue: Partial<Client>
     isCreateOrUpdate: "create" | "update"
     key: string
     name?: Name
+    serverValue: Partial<Client>
 }): JSX.Element {
-    const [name, setName] = useState<string>(initalName ?? "")
-    const isNameModified = useMemo(() => name !== (initalName ?? ""), [initalName, name])
+    const [name, setName] = useState<string>(serverName ?? "")
+    const isNameModified = useMemo(() => name !== (serverName ?? ""), [serverName, name])
 
     const [ipaddr, setIpaddr] = useState<string>(
-        initialValue.ipaddr ? IpNetworkFromStringType.encode(initialValue.ipaddr) : "",
+        serverValue.ipaddr ? IpNetworkFromStringType.encode(serverValue.ipaddr) : "",
     )
     const isIpaddrModified = useMemo(
         () =>
             ipaddr !==
-            (initialValue.ipaddr
+            (serverValue.ipaddr
                 ? // check against initial value if present (for updating)
-                  IpNetworkFromStringType.encode(initialValue.ipaddr)
+                  IpNetworkFromStringType.encode(serverValue.ipaddr)
                 : // otherwise check against empty string (for creating)
                   ""),
-        [initialValue.ipaddr, ipaddr],
+        [serverValue.ipaddr, ipaddr],
     )
 
-    const [secret, setSecret] = useState<string>(initialValue.secret ?? "")
-    const isSecretModified = useMemo(() => secret !== (initialValue.secret ?? ""), [initialValue.secret, secret])
+    const [secret, setSecret] = useState<string>(serverValue.secret ?? "")
+    const isSecretModified = useMemo(() => secret !== (serverValue.secret ?? ""), [serverValue.secret, secret])
 
     const formValidation = useMemo<t.Validation<Client>>(
         () =>
@@ -74,43 +151,22 @@ function ClientTableRow({
         [ipaddr, name, secret],
     )
 
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-    const { mutate: submit } = useMutation({
-        mutationFn: async (validation: typeof formValidation) => {
-            await F.pipe(
-                TE.fromEither(validation),
-                TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                TE.flatMap((client) => TE.tryCatch(() => createOrUpdate(client.name, client), E.toError)),
-                TE.getOrElse((e) => {
-                    throw e
-                }),
-            )()
+    const { mutate: submitUpdate } = useCreateOrUpdateClient({
+        name,
+        onSuccess: () => {
+            if (isCreateOrUpdate === "create") {
+                setName(serverName ?? "")
+                setIpaddr("")
+                setSecret("")
+            }
         },
-        mutationKey: ["clients", "create-or-update", name],
-        onSettled: invalidate,
     })
-    const { mutate: submitDelete } = useMutation<unknown, unknown, string>({
-        mutationFn: async (name) => {
-            await F.pipe(
-                // validate name
-                TE.fromEither(NameType.decode(name)),
-                TE.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
-                // submit delete
-                TE.flatMap((name) => TE.tryCatch(() => deleteRow(name), E.toError)),
-                // throw error of validation or delete
-                TE.getOrElse((e) => {
-                    throw e
-                }),
-            )()
-        },
-        mutationKey: ["clients", "delete", name],
-        onSettled: invalidate,
-    })
+    const { mutate: submitDelete } = useDeleteClient(name)
 
     return (
         <TableRow
             onKeyDown={(event) => {
-                if (event.key === "Enter") submit(formValidation)
+                if (event.key === "Enter") submitUpdate(formValidation)
             }}
         >
             <ValidatedTableCell
@@ -139,7 +195,7 @@ function ClientTableRow({
                         aria-label="Create"
                         disabled={E.isLeft(formValidation)}
                         onClick={() => {
-                            submit(formValidation)
+                            submitUpdate(formValidation)
                         }}
                     >
                         <Add />
@@ -153,7 +209,7 @@ function ClientTableRow({
                         aria-label="Update"
                         disabled={E.isLeft(formValidation)}
                         onClick={() => {
-                            submit(formValidation)
+                            submitUpdate(formValidation)
                         }}
                     >
                         <Save />
@@ -173,54 +229,17 @@ function ClientTableRow({
 }
 
 function ClientTable(): JSX.Element {
-    const { nonce, increaseNonce, publishNonce } = useStagedNonce()
-    const { data: clients } = useQuery<readonly Client[]>({
-        queryFn: async () => await getAllClients(),
-        queryKey: CLIENT_QUERY_KEY,
-        onSettled: publishNonce,
-    })
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-
-    const createOrUpdateByNameWithNonce = useCallback(
-        async (name: Name, client: Client) => {
-            await createOrUpdateByName(name, client)
-            increaseNonce()
-        },
-        [increaseNonce],
-    )
-
-    const deleteByNameWithNonce = useCallback(
-        async (name: Name) => {
-            await deleteByName(name)
-            increaseNonce()
-        },
-        [increaseNonce],
-    )
-
-    const { mutate: bulkCreateOrUpdateWithNonce } = useMutation({
-        mutationFn: async (clients: readonly Client[]) => {
-            await bulkCreateOrUpdate(clients)
-            increaseNonce()
-        },
-        mutationKey: ["clients", "bulk-create-or-update"],
-        onSettled: invalidate,
-    })
+    const { data: clients } = useListClients()
+    const { mutate: importClients } = useBulkCreateOrUpdate()
 
     const tableItems = useMemo(() => {
         if (clients === undefined) {
             return []
         }
         return clients.map((client) => (
-            <ClientTableRow
-                createOrUpdate={createOrUpdateByNameWithNonce}
-                delete={deleteByNameWithNonce}
-                initialValue={client}
-                isCreateOrUpdate="update"
-                key={`${client.name}@${nonce}`}
-                name={client.name}
-            />
+            <ClientTableRow serverValue={client} isCreateOrUpdate="update" key={client.name} name={client.name} />
         ))
-    }, [clients, createOrUpdateByNameWithNonce, deleteByNameWithNonce, nonce])
+    }, [clients])
 
     return (
         <TableContainer>
@@ -235,13 +254,7 @@ function ClientTable(): JSX.Element {
                 </TableHead>
                 <TableBody>
                     {tableItems}
-                    <ClientTableRow
-                        createOrUpdate={createOrUpdateByNameWithNonce}
-                        delete={deleteByNameWithNonce}
-                        initialValue={{}}
-                        isCreateOrUpdate="create"
-                        key={`create@${nonce}`}
-                    />
+                    <ClientTableRow serverValue={{}} isCreateOrUpdate="create" key={`create`} />
                 </TableBody>
                 <TableFooter>
                     <TableRow>
@@ -254,7 +267,7 @@ function ClientTable(): JSX.Element {
                             <ImportButton
                                 decoder={ListClientsResponseType}
                                 onImport={(clients) => {
-                                    bulkCreateOrUpdateWithNonce(clients)
+                                    importClients(clients)
                                 }}
                             />
                         </TableCell>

@@ -151,15 +151,17 @@ function MpskTableRow({
             {isCreateOrUpdate === "create" && (
                 <TableCell>
                     <Tooltip title={formError}>
-                        <IconButton
-                            aria-label="Create"
-                            disabled={E.isLeft(formValidation)}
-                            onClick={() => {
-                                submit(formValidation)
-                            }}
-                        >
-                            <Add />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                aria-label="Create"
+                                disabled={E.isLeft(formValidation)}
+                                onClick={() => {
+                                    submit(formValidation)
+                                }}
+                            >
+                                <Add />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 </TableCell>
             )}
@@ -167,15 +169,17 @@ function MpskTableRow({
             {isCreateOrUpdate === "update" && (
                 <TableCell>
                     <Tooltip title={formError}>
-                        <IconButton
-                            aria-label="Update"
-                            disabled={E.isLeft(formValidation)}
-                            onClick={() => {
-                                submit(formValidation)
-                            }}
-                        >
-                            <Save />
-                        </IconButton>
+                        <span>
+                            <IconButton
+                                aria-label="Update"
+                                disabled={E.isLeft(formValidation)}
+                                onClick={() => {
+                                    submit(formValidation)
+                                }}
+                            >
+                                <Save />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     <IconButton
                         aria-label="Delete"

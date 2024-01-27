@@ -1,13 +1,13 @@
 "use client"
 
-import { Alert, AlertTitle, SxProps } from "@mui/material"
+import { Alert, AlertTitle, SxProps, Typography } from "@mui/material"
 import { Box } from "@mui/system"
 import { createContext, useCallback, useContext, useEffect, useState, useId } from "react"
 
 interface Notification {
     key: unknown
     title: string
-    message: string
+    message?: string
     severity: "success" | "error"
     timeout: number
 }
@@ -55,11 +55,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     )
 }
 
-function Notification({ notification }: { notification: Notification }) {
+function Notification({ notification: { message, severity, title } }: { notification: Notification }) {
     return (
-        <Alert severity={notification.severity} sx={{ mb: 1 }}>
-            <AlertTitle>{notification.title}</AlertTitle>
-            {notification.message}
+        <Alert severity={severity} sx={{ mb: 1 }} variant="filled">
+            <AlertTitle>{title}</AlertTitle>
+            {message ? <Typography>{message}</Typography> : null}
         </Alert>
     )
 }
@@ -68,7 +68,7 @@ export function NotificationList({ sx }: { sx?: SxProps }) {
     const { notifications } = useContext(NotificationContext)
 
     return (
-        <Box sx={{ position: "relative", right: 0, top: "1em", ...sx }}>
+        <Box sx={{ position: "fixed", right: "1em", top: "4em", ...sx }}>
             {notifications.map((notification, i) => (
                 <Notification key={i} notification={notification} />
             ))}
@@ -77,33 +77,33 @@ export function NotificationList({ sx }: { sx?: SxProps }) {
 }
 
 export function useNotifications(): {
-    notifySuccess: (title: string, message: string, key?: unknown) => void
-    notifyError: (title: string, message: string, key?: unknown) => void
+    notifySuccess: (title: string, message?: string, key?: unknown) => void
+    notifyError: (title: string, message?: string, key?: unknown) => void
 } {
     const { addNotification } = useContext(NotificationContext)
     const id = useId()
 
     const notifySuccess = useCallback(
-        (title: string, message: string, key?: unknown) => {
+        (title: string, message?: string, key?: unknown) => {
             addNotification({
                 key: key ?? id,
                 title,
                 message,
                 severity: "success",
-                timeout: 5000,
+                timeout: 2500,
             })
         },
         [addNotification, id],
     )
 
     const notifyError = useCallback(
-        (title: string, message: string, key?: unknown) => {
+        (title: string, message?: string, key?: unknown) => {
             addNotification({
                 key: key ?? id,
                 title,
                 message,
                 severity: "error",
-                timeout: 5000,
+                timeout: 2500,
             })
         },
         [addNotification, id],
