@@ -3,8 +3,8 @@ import * as path from "node:path"
 
 import pino from "pino"
 
-import { RaddbGenParams } from ".."
-import { dedent } from "../indents"
+import { RaddbGenParams } from "../.."
+import { dedent } from "../../indents"
 
 const logger = pino({ name: `${path.basename(__dirname)}/${path.basename(__filename)}` })
 

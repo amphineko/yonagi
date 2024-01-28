@@ -3,8 +3,8 @@ import * as path from "node:path"
 
 import pino from "pino"
 
-import { RaddbGenParams } from ".."
-import { dedent } from "../indents"
+import { RaddbGenParams } from "../.."
+import { dedent } from "../../indents"
 
 const logger = pino({ name: `${path.basename(__dirname)}/${path.basename(__filename)}` })
 
@@ -49,7 +49,7 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
                     
                     if (!EAP-Message) {
                         # non-802.1x: mac auth
-                        rest
+                        rest_mac_auth
                         if (updated) {
                             update control {
                                 Auth-Type := Accept
