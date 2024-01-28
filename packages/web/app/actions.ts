@@ -9,10 +9,6 @@ export async function getStatus(): Promise<GetStatusResponse> {
     return await getTypedEndpoint(GetStatusResponseType, "api/v1/radiusd/status")
 }
 
-export async function reloadRadiusd(): Promise<void> {
+export async function reload(): Promise<void> {
     await postTypedEndpoint(t.any, t.any, "api/v1/radiusd/reload", null)
-}
-
-export async function restartRadiusd(): Promise<void> {
-    await postTypedEndpoint(t.any, t.any, "api/v1/radiusd/restart", null)
 }

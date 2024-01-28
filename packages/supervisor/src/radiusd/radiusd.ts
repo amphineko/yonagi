@@ -73,11 +73,6 @@ class Process {
         })
 
         child.on("error", (error: Error | string) => {
-            if (this._process == child) {
-                this._lastExitCode = -1
-                this._process = null
-            }
-
             this.logError(`Cannot spawn process ${this.executable}: ${error.toString()}`)
             process.nextTick(() => this.autoRestart())
         })
@@ -89,7 +84,7 @@ class Process {
             }
 
             this.logInfo(`Process ${this.executable} exited with code ${code} and signal ${signal}`)
-            process.nextTick(() => this.autoRestart())
+            this.autoRestart()
         })
 
         child.on("spawn", () => {
@@ -118,17 +113,6 @@ class Process {
         this._lastExitCode = null
         this._lastRestart = new Date()
         return child
-    }
-
-    signal(signal: NodeJS.Signals): Promise<void> {
-        if (this._process) {
-            this._process.kill(signal)
-            return Promise.resolve()
-        } else {
-            const message = `Cannot send signal ${signal} to radiusd: not started`
-            this.logError(message)
-            return Promise.reject(new Error(message))
-        }
     }
 
     start(): Promise<void> {
@@ -223,11 +207,6 @@ export class Radiusd {
     }
 
     async reload(): Promise<void> {
-        await this._regenerateFiles()
-        await this._process.signal("SIGHUP")
-    }
-
-    async restart(): Promise<void> {
         await this.stop()
         await this.start()
     }
