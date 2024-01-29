@@ -213,7 +213,7 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
     )
 
     useEffect(() => {
-        const defaultTab = Object.keys(tabs).pop()
+        const defaultTab = Object.keys(tabs).shift()
         if (currentTab === "" && defaultTab) {
             router.push(defaultTab)
         }
