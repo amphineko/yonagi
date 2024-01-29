@@ -99,7 +99,7 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
             TE.tryCatch(async () => await this.repository.findBy({ callingStationId }), E.toError),
             TE.filterOrElse(
                 (entities) => entities.length > 1,
-                () => new Error("Unexpected multiple MPSKs with the same Calling-Station-Id"),
+                () => new Error(`Unexpected multiple MPSKs with the same Calling-Station-Id: ${callingStationId}`),
             ),
             TE.flatMapEither((entities) =>
                 entities.length !== 0
