@@ -19,7 +19,10 @@ export type CallingStationId = t.Branded<string, "CallingStationId">
 export const CallingStationIdType = new t.Type<CallingStationId, string>(
     "CallingStationId",
     // is string
-    (u): u is CallingStationId => E.isRight(CallingStationIdType.validate(u, [])),
+    (u): u is CallingStationId => {
+        const validation = validateCallingStationId(u, [])
+        return E.isRight(validation) && u === validation.right
+    },
     // match and normalize to aa-bb-cc-dd-ee-ff
     (u, c) => validateCallingStationId(u, c),
     // normalize to aa-bb-cc-dd-ee-ff

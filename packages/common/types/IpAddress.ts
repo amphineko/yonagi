@@ -32,12 +32,11 @@ export const IpAddressType = new t.Type<IpAddress>(
             E.tap(({ address, family }) =>
                 F.pipe(
                     getAddressUpperBound(family),
-                    E.chain((upperBound) =>
-                        address >= 0 && address <= upperBound
-                            ? E.right(void 0)
-                            : E.left(`IP address is out of range: ${address}`),
+                    E.filterOrElse(
+                        (upperbound) => address >= 0n && address <= upperbound,
+                        () => `IP address is out of range: ${address}`,
                     ),
-                    E.orElse((e) => t.failure(u, c, e)),
+                    E.orElse((message) => t.failure(u, c, message)),
                 ),
             ),
         ),

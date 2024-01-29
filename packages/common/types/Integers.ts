@@ -4,7 +4,7 @@ import * as t from "io-ts"
 
 export const PositiveIntegerFromString = new t.Type<number, string, unknown>(
     "PositiveIntegerFromString",
-    (u): u is number => E.isRight(PositiveIntegerFromString.validate(u, [])),
+    (u): u is number => typeof u === "number" && u > 0 && Number.isInteger(u),
     (u, c) =>
         F.pipe(
             t.string.validate(u, c),
@@ -21,7 +21,7 @@ export const IntegerRangeType = (min: number, max: number) =>
             F.pipe(
                 t.number.validate(u, c),
                 E.flatMap((n) =>
-                    n >= min && n <= max
+                    Number.isInteger(n) && n >= min && n <= max
                         ? t.success(n)
                         : t.failure(u, c, `Value is out of range: ${n} (min: ${min}, max: ${max})`),
                 ),

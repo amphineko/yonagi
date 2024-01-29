@@ -4,7 +4,10 @@ import * as t from "io-ts"
 
 export const SerialNumberStringType = new t.Type<string, string, unknown>(
     "SerialNumberString",
-    (u): u is string => typeof u === "string",
+    (u): u is string => {
+        const validation = SerialNumberStringType.validate(u, [])
+        return E.isRight(validation) && u === validation.right
+    },
     (u, c) =>
         F.pipe(
             t.string.validate(u, c),
