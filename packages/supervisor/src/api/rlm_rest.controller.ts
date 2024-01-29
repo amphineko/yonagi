@@ -11,12 +11,12 @@ import {
 import { Client } from "@yonagi/common/types/Client"
 import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
 import { NameType } from "@yonagi/common/types/Name"
-import * as E from "fp-ts/lib/Either"
+import { mapValidationLeftError } from "@yonagi/common/utils/Either"
+import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
-import * as PR from "io-ts/lib/PathReporter"
 
-import { EncodeResponseWith, mapLeftDecodeError, resolveOrThrow } from "./common"
+import { EncodeResponseWith, validateRequestParam } from "./common"
 import { DynamicClientResolver } from "../rlm_rest/dynclients"
 import {
     RlmRestClientAuthRequestType,
@@ -41,24 +41,17 @@ export class RlmRestController {
     @EncodeResponseWith(RlmRestMacAuthResponseType)
     async authorize(@Body() rawBody: unknown): Promise<RlmRestMacAuthResponse> {
         return await F.pipe(
-            TE.fromEither(
-                F.pipe(
-                    RlmRestMacAuthRequestType.decode(rawBody),
-                    E.mapLeft((errors) => new BadRequestException(PR.failure(errors))),
-                ),
+            TE.fromEither(validateRequestParam(rawBody, RlmRestMacAuthRequestType)),
+            tryCatchF(
+                ({ callingStationId }) => this.mpskStorage.getByCallingStationId(callingStationId),
+                (reason) => new InternalServerErrorException(reason),
             ),
-            TE.flatMap(({ callingStationId }) =>
-                TE.tryCatch(
-                    () => this.mpskStorage.getByCallingStationId(callingStationId),
-                    (reason) => new InternalServerErrorException(reason),
-                ),
-            ),
-            TE.filterOrElse(
+            TE.filterOrElseW(
                 (mpsk): mpsk is CallingStationIdAuthentication => mpsk !== null,
                 () => new NotFoundException("No MPSK found"),
             ),
             TE.map(({ psk }) => ({ arubaMpskPassphrase: psk, mediumType: "IEEE-802" as const })),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
@@ -67,15 +60,8 @@ export class RlmRestController {
     async authorizeClient(@Body() rawBody: unknown): Promise<RlmRestClientAuthResponse> {
         const o = await F.pipe(
             TE.Do,
-            TE.bind("request", () =>
-                TE.fromEither(
-                    F.pipe(
-                        RlmRestClientAuthRequestType.decode(rawBody),
-                        mapLeftDecodeError((message) => new BadRequestException(message)),
-                    ),
-                ),
-            ),
-            TE.bind("client", ({ request: { clientIpAddr } }) =>
+            TE.bindW("request", () => TE.fromEither(validateRequestParam(rawBody, RlmRestClientAuthRequestType))),
+            TE.bindW("client", ({ request: { clientIpAddr } }) =>
                 F.pipe(
                     TE.tryCatch(
                         async () => await this.clientResolver.getClientBySourceIp(clientIpAddr),
@@ -87,15 +73,15 @@ export class RlmRestController {
                     ),
                 ),
             ),
-            TE.bind("name", ({ client: { name }, request: { clientIpAddr } }) =>
+            TE.bindW("name", ({ client: { name }, request: { clientIpAddr } }) =>
                 F.pipe(
                     NameType.decode(`${name}-${clientIpAddr.address.toString()}`),
-                    mapLeftDecodeError((message) => new InternalServerErrorException(message)),
+                    mapValidationLeftError((message) => new BadRequestException("Malformed name: " + message)),
                     TE.fromEither,
                 ),
             ),
             TE.map(({ name, client: { secret } }) => ({ name, secret })),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
         return o
     }

@@ -5,6 +5,7 @@ import {
     Delete,
     Get,
     Inject,
+    InternalServerErrorException,
     NotFoundException,
     Param,
     Post,
@@ -19,6 +20,7 @@ import {
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
 import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/types/SerialNumberString"
+import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -27,7 +29,7 @@ import * as PR from "io-ts/lib/PathReporter"
 import * as pkijs from "pkijs"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, resolveOrThrow } from "./common"
+import { EncodeResponseWith, validateRequestParam } from "./common"
 import { formatValueHex, getCertificateSerialAsHexString, parsePkijsRdn } from "../pki/exchange"
 import { Certificate, Pki } from "../pki/pki"
 
@@ -108,15 +110,15 @@ export class PkiController {
     async exportClientCertificateP12(@Param("serial") serial: unknown, @Body() body: unknown): Promise<string> {
         return await F.pipe(
             E.Do,
-            E.bind("serial", () => SerialNumberStringType.decode(serial)),
-            E.bind("password", () => ExportClientCertificateP12RequestType.decode(body)),
-            E.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
+            E.bindW("serial", () => validateRequestParam(serial, SerialNumberStringType)),
+            E.bindW("options", () => validateRequestParam(body, ExportClientCertificateP12RequestType)),
             TE.fromEither,
-            TE.flatMap(({ serial, password: { password } }) =>
-                TE.tryCatch(() => this.pki.exportClientCertificateP12(serial, password), E.toError),
+            tryCatchF(
+                ({ serial, options: { password } }) => this.pki.exportClientCertificateP12(serial, password),
+                (reason) => new InternalServerErrorException(`Cannot export certificate chain: ${String(reason)}`),
             ),
             TE.map((p12) => Buffer.from(p12).toString("base64")),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
@@ -130,7 +132,7 @@ export class PkiController {
             TE.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
             TE.flatMap((req) => TE.tryCatch(async () => await create(req), E.toError)),
             TE.map((cert) => this.getCertificateSummary(cert.cert)),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
@@ -141,9 +143,7 @@ export class PkiController {
     ): Promise<void> {
         await F.pipe(
             // validate serial number
-            SerialNumberStringType.decode(unknownSerial),
-            E.mapLeft((errors) => new BadRequestException(PR.failure(errors).join(", "))),
-            TE.fromEither,
+            TE.fromEither(validateRequestParam(unknownSerial, SerialNumberStringType)),
             // validate certificate exists and serial matches
             TE.tap((serial) =>
                 F.pipe(
@@ -154,7 +154,10 @@ export class PkiController {
                     ),
                 ),
             ),
-            TE.flatMap((serial) => TE.tryCatch(() => deleteCertificate(serial), E.toError)),
+            tryCatchF(
+                (serial) => deleteCertificate(serial),
+                (reason) => new InternalServerErrorException(`Cannot delete certificate: ${String(reason)}`),
+            ),
         )()
     }
 

@@ -3,15 +3,15 @@ import { Client, ClientType } from "@yonagi/common/types/Client"
 import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
+import { mapValidationLeftError } from "@yonagi/common/utils/Either"
+import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
-import * as PR from "io-ts/lib/PathReporter"
 import { BaseEntity, Column, DataSource, Entity, EntityManager, In, PrimaryGeneratedColumn, Repository } from "typeorm"
 
 import { AbstractClientStorage } from ".."
-import { resolveOrThrow } from "../../api/common"
 
 @Entity("clients")
 export class SqlClientEntity extends BaseEntity {
@@ -49,7 +49,7 @@ export class SqlClientStorage extends AbstractClientStorage {
                     A.sequence(E.Applicative),
                 ),
             ),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
@@ -97,9 +97,7 @@ export class SqlClientStorage extends AbstractClientStorage {
         return await F.pipe(
             TE.tryCatch(() => this.repository.findOneBy({ name }), E.toError),
             TE.flatMap((entity) => (entity ? TE.fromEither(this.decodeClientEntity(entity)) : TE.right(null))),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            getOrThrow(),
         )()
     }
 
@@ -107,7 +105,7 @@ export class SqlClientStorage extends AbstractClientStorage {
         return F.pipe(
             IpNetworkFromStringType.decode(ipaddr),
             E.flatMap((ipaddr) => ClientType.decode({ name, ipaddr, secret })),
-            E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+            mapValidationLeftError((error) => new Error(error)),
         )
     }
 }

@@ -18,7 +18,7 @@ import { CallingStationIdType } from "@yonagi/common/types/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { PSKType } from "@yonagi/common/types/PSK"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
+import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -84,7 +84,7 @@ function useUpdateMpsk({ name, onSuccess }: { name: string; onSuccess: () => voi
                 mapLeftValidationError((error) => new Error(`Cannot validate input: ${error}`)),
                 TE.fromEither,
                 TE.flatMap((mpsk) => TE.tryCatch(() => createOrUpdateByName(name, mpsk), E.toError)),
-                resolveOrThrow(),
+                getOrThrow(),
             )()
         },
         mutationKey: ["mpsks", "update", name],
@@ -155,7 +155,7 @@ function MpskTableRow({
     )
 
     const { mutate: submitUpdate, isLoading: isUpdating } = useUpdateMpsk({
-        name: serverName ?? "",
+        name,
         onSuccess: () => {
             if (isCreateOrUpdate === "create") {
                 setName(serverName ?? "")
@@ -164,6 +164,7 @@ function MpskTableRow({
             }
         },
     })
+
     const { mutate: submitDelete } = useDeleteMpsk(name)
 
     useEffect(() => {

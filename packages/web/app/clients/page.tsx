@@ -16,7 +16,7 @@ import { Client, ClientType } from "@yonagi/common/types/Client"
 import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
 import { SecretType } from "@yonagi/common/types/Secret"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
+import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -66,7 +66,7 @@ function useCreateOrUpdateClient({ name, onSuccess }: { name: string; onSuccess:
                         (error) => new Error(String(error)),
                     ),
                 ),
-                resolveOrThrow(),
+                getOrThrow(),
             )()
         },
         mutationKey: ["clients", "update", name],

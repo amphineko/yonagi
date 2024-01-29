@@ -1,11 +1,11 @@
 import { IpAddress } from "@yonagi/common/types/IpAddress"
 import { IpAddressFromStringType } from "@yonagi/common/types/IpAddressFromString"
+import { Name, NameType } from "@yonagi/common/types/Name"
 import { Secret, SecretType } from "@yonagi/common/types/Secret"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"
 import * as t from "io-ts"
 
-import { Name, NameType } from "@yonagi/common/types/Name"
 import { attribute } from "./common"
 
 export interface RlmRestClientAuthRequest {

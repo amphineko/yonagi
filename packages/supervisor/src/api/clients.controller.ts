@@ -5,6 +5,7 @@ import {
     Delete,
     Get,
     Inject,
+    InternalServerErrorException,
     Param,
     Post,
     UseInterceptors,
@@ -16,13 +17,14 @@ import {
     ListClientsResponse,
     ListClientsResponseType,
 } from "@yonagi/common/api/clients"
-import { Client } from "@yonagi/common/types/Client"
+import { NameType } from "@yonagi/common/types/Name"
+import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, mapLeftDecodeError, resolveOrThrow, validateNameOfRequest } from "./common"
+import { EncodeResponseWith, validateRequestParam } from "./common"
 import { AbstractClientStorage } from "../storages"
 
 @Controller("/api/v1/clients")
@@ -34,40 +36,30 @@ export class RadiusClientController {
     async createOrUpdate(@Param("name") rawName: string, @Body() body: unknown): Promise<void> {
         await F.pipe(
             E.Do,
-            E.bind("name", () => validateNameOfRequest(rawName)),
-            E.bind(
-                "value",
-                (): E.Either<Error, Client> =>
-                    F.pipe(
-                        CreateOrUpdateClientRequestType.decode(body),
-                        mapLeftDecodeError((message) => new BadRequestException(message)),
-                    ),
-            ),
-            E.tap(
-                F.flow(
-                    E.fromPredicate(
-                        ({ name, value }) => name === value.name,
-                        () => "Name in path and body must be same",
-                    ),
-                    E.orElse((error) => E.left(new BadRequestException(error))),
-                ),
+            E.bind("name", () => validateRequestParam(rawName, NameType)),
+            E.bind("value", () => validateRequestParam(body, CreateOrUpdateClientRequestType)),
+            E.filterOrElseW(
+                ({ name, value }) => name === value.name,
+                () => new BadRequestException("Name in path and body must be same"),
             ),
             TE.fromEither,
-            TE.flatMap(({ name, value }) =>
-                TE.tryCatch(async () => {
-                    await this.clientStorage.createOrUpdateByName(name, value)
-                }, E.toError),
+            tryCatchF(
+                ({ name, value }) => this.clientStorage.createOrUpdateByName(name, value),
+                (reason) => new InternalServerErrorException(String(reason)),
             ),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
         await F.pipe(
-            TE.fromEither(validateNameOfRequest(name)),
-            TE.flatMap((name) => TE.tryCatch(async () => await this.clientStorage.deleteByName(name), E.toError)),
-            resolveOrThrow(),
+            TE.fromEither(validateRequestParam(name, NameType)),
+            tryCatchF(
+                (name) => this.clientStorage.deleteByName(name),
+                (reason) => new InternalServerErrorException(String(reason)),
+            ),
+            getOrThrow(),
         )()
     }
 
@@ -76,12 +68,11 @@ export class RadiusClientController {
         await F.pipe(
             TE.fromEither(BulkCreateOrUpdateClientsRequestType.decode(body)),
             TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
-            TE.flatMap((clients) =>
-                TE.tryCatch(async () => {
-                    await this.clientStorage.bulkCreateOrUpdate(clients)
-                }, E.toError),
+            tryCatchF(
+                (clients) => this.clientStorage.bulkCreateOrUpdate(clients),
+                (reason) => new InternalServerErrorException(String(reason)),
             ),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 

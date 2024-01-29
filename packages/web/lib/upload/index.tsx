@@ -2,7 +2,7 @@
 
 import { Download, Upload } from "@mui/icons-material"
 import { Button } from "@mui/material"
-import { resolveOrThrow } from "@yonagi/common/utils/TaskEither"
+import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
@@ -77,7 +77,7 @@ export function ImportButton<A>({
                 ),
             ),
             TE.map(onImport),
-            resolveOrThrow(),
+            getOrThrow(),
         )().catch((e) => {
             console.error(e)
             alert(e)

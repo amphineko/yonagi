@@ -2,6 +2,8 @@ import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import { CallingStationId } from "@yonagi/common/types/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name } from "@yonagi/common/types/Name"
+import { mapValidationLeftError } from "@yonagi/common/utils/Either"
+import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as A from "fp-ts/lib/Array"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -45,12 +47,10 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
                 F.flow(
                     A.map((entity) => MPSKType.decode(entity)),
                     A.sequence(E.Applicative),
-                    E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                    mapValidationLeftError((error) => new Error(error)),
                 ),
             ),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            getOrThrow(),
         )()
     }
 
@@ -90,28 +90,26 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
                 () => new Error("Underlying database driver does not support affected rows"),
             ),
             TE.map(({ affected }) => affected === 1),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            getOrThrow(),
         )()
     }
 
     async getByCallingStationId(callingStationId: CallingStationId): Promise<CallingStationIdAuthentication | null> {
         return await F.pipe(
             TE.tryCatch(async () => await this.repository.findBy({ callingStationId }), E.toError),
+            TE.filterOrElse(
+                (entities) => entities.length > 1,
+                () => new Error("Unexpected multiple MPSKs with the same Calling-Station-Id"),
+            ),
             TE.flatMapEither((entities) =>
-                entities.length === 1
+                entities.length !== 0
                     ? F.pipe(
                           MPSKType.decode(entities[0]),
                           E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
                       )
-                    : entities.length === 0
-                      ? E.right(null)
-                      : E.left(new Error("Unexpected multiple MPSKs with the same Calling-Station-Id")),
+                    : E.right(null),
             ),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            getOrThrow(),
         )()
     }
 
@@ -123,14 +121,12 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
                     ? TE.fromEither(
                           F.pipe(
                               MPSKType.decode(entity),
-                              E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+                              mapValidationLeftError((error) => new Error(error)),
                           ),
                       )
                     : TE.right(null),
             ),
-            TE.getOrElse((error) => {
-                throw error
-            }),
+            getOrThrow(),
         )()
     }
 }
