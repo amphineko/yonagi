@@ -1,7 +1,7 @@
-import { CallingStationId } from "@yonagi/common/types/CallingStationId"
 import { Client } from "@yonagi/common/types/Client"
-import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
 import { Name } from "@yonagi/common/types/Name"
+import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationIdAuthentication } from "@yonagi/common/types/mpsks/MPSK"
 
 export abstract class AbstractClientStorage {
     abstract all(): Promise<readonly Client[]>

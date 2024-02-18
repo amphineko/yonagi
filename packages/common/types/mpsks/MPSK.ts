@@ -1,8 +1,8 @@
 import * as t from "io-ts/lib/index"
 
 import { CallingStationId, CallingStationIdType } from "./CallingStationId"
-import { Name, NameType } from "./Name"
 import { PSK, PSKType } from "./PSK"
+import { Name, NameType } from "../Name"
 
 export interface CallingStationIdAuthentication {
     callingStationId: CallingStationId

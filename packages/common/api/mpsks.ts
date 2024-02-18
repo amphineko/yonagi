@@ -1,6 +1,6 @@
 import * as t from "io-ts/lib/index"
 
-import { MPSKType } from "../types/MPSK"
+import { MPSKType } from "../types/mpsks/MPSK"
 
 export const CreateOrUpdateMPSKRequestType = MPSKType
 

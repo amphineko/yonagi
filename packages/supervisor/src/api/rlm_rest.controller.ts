@@ -9,8 +9,8 @@ import {
     forwardRef,
 } from "@nestjs/common"
 import { Client } from "@yonagi/common/types/Client"
-import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
 import { NameType } from "@yonagi/common/types/Name"
+import { CallingStationIdAuthentication } from "@yonagi/common/types/mpsks/MPSK"
 import { mapValidationLeftError } from "@yonagi/common/utils/Either"
 import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as TE from "fp-ts/lib/TaskEither"
