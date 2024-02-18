@@ -1,7 +1,7 @@
 import {
     RelativeDistinguishedNames,
     RelativeDistinguishedNamesType,
-} from "@yonagi/common/types/RelativeDistinguishedNames"
+} from "@yonagi/common/types/pki/RelativeDistinguishedNames"
 import * as asn1js from "asn1js"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"

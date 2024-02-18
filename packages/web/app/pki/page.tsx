@@ -23,9 +23,9 @@ import {
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
 import { PositiveIntegerFromString } from "@yonagi/common/types/Integers"
-import { RelativeDistinguishedNames } from "@yonagi/common/types/RelativeDistinguishedNames"
-import { SerialNumberString } from "@yonagi/common/types/SerialNumberString"
 import { NonEmptyStringType } from "@yonagi/common/types/StringWithLengthRange"
+import { RelativeDistinguishedNames } from "@yonagi/common/types/pki/RelativeDistinguishedNames"
+import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
 import { useState } from "react"
 import { useMutation, useQuery } from "react-query"
 

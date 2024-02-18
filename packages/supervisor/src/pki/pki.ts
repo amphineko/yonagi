@@ -2,8 +2,7 @@ import { writeFile } from "node:fs/promises"
 import { basename } from "node:path"
 
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { KeyGenParams } from "@yonagi/common/types/PKI"
-import { RelativeDistinguishedNames } from "@yonagi/common/types/RelativeDistinguishedNames"
+import { RelativeDistinguishedNames } from "@yonagi/common/types/pki/RelativeDistinguishedNames"
 import { pino } from "pino"
 import * as pkijs from "pkijs"
 
@@ -46,7 +45,7 @@ export class CertificateAuthority extends Certificate {
     static async createAsync(
         subject: RelativeDistinguishedNames,
         validity: number,
-        keyParams: KeyGenParams,
+        keyParams: EcKeyGenParams | RsaHashedKeyGenParams,
         hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<CertificateAuthority> {
@@ -78,7 +77,7 @@ export class ServerCertificate extends Certificate {
         subject: RelativeDistinguishedNames,
         issuer: CreateCertificateIssuer,
         validity: number,
-        keyParams: KeyGenParams,
+        keyParams: EcKeyGenParams | RsaHashedKeyGenParams,
         hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<ServerCertificate> {
@@ -113,7 +112,7 @@ export class ClientCertificate extends Certificate {
         subject: RelativeDistinguishedNames,
         issuer: CreateCertificateIssuer,
         validity: number,
-        keyParams: KeyGenParams,
+        keyParams: EcKeyGenParams | RsaHashedKeyGenParams,
         hashAlg: string,
         crypto: pkijs.ICryptoEngine,
     ): Promise<ClientCertificate> {
@@ -146,7 +145,7 @@ export class ClientCertificate extends Certificate {
 export class Pki {
     private certHashAlg: string
 
-    private keyParams: KeyGenParams
+    private keyParams: EcKeyGenParams | RsaHashedKeyGenParams
 
     private deployPaths: {
         ca: { cert: string }

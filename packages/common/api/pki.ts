@@ -1,7 +1,7 @@
 import * as t from "io-ts"
 
-import { RelativeDistinguishedNamesType } from "../types/RelativeDistinguishedNames"
-import { SerialNumberStringType } from "../types/SerialNumberString"
+import { RelativeDistinguishedNamesType } from "../types/pki/RelativeDistinguishedNames"
+import { SerialNumberStringType } from "../types/pki/SerialNumberString"
 
 export const CertificateSummaryType = t.type({
     issuer: RelativeDistinguishedNamesType,

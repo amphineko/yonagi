@@ -1,4 +1,4 @@
-import { RelativeDistinguishedNames } from "@yonagi/common/types/RelativeDistinguishedNames"
+import { RelativeDistinguishedNames } from "@yonagi/common/types/pki/RelativeDistinguishedNames"
 import * as asn1js from "asn1js"
 import * as pkijs from "pkijs"
 

@@ -19,7 +19,7 @@ import {
     ExportClientCertificateP12RequestType,
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
-import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/types/SerialNumberString"
+import { SerialNumberString, SerialNumberStringType } from "@yonagi/common/types/pki/SerialNumberString"
 import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
