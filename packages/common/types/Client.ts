@@ -1,6 +1,6 @@
 import * as t from "io-ts/lib/index"
 
-import { EncodedIpNetwork, IpNetwork, IpNetworkType } from "./IpNetwork"
+import { IpNetwork, IpNetworkType } from "./IpNetwork"
 import { Name, NameType } from "./Name"
 import { Secret, SecretType } from "./Secret"
 
@@ -12,7 +12,7 @@ export interface Client {
 
 interface EncodedClient {
     name: string
-    ipaddr: EncodedIpNetwork
+    ipaddr: IpNetwork
     secret: string
 }
 

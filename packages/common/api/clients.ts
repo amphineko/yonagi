@@ -1,22 +1,28 @@
 import * as t from "io-ts/lib/index"
 
-import { ClientType } from "../types/Client"
-import { IpNetworkType } from "../types/IpNetwork"
+import { Client } from "../types/Client"
+import { IpNetworkFromStringType } from "../types/IpNetworkFromString"
+import { NameType } from "../types/Name"
 import { SecretType } from "../types/Secret"
 
-export const CreateOrUpdateClientRequestProps = {
-    ipaddr: IpNetworkType,
-    secret: SecretType,
+interface JsonClient {
+    name: string
+    ipaddr: string
+    secret: string
 }
 
-export const CreateClientRequestType = t.type(CreateOrUpdateClientRequestProps)
+export const JsonClientType: t.Type<Client, JsonClient> = t.type({
+    name: NameType,
+    ipaddr: IpNetworkFromStringType,
+    secret: SecretType,
+})
 
-export const UpdateClientRequestType = t.partial(CreateOrUpdateClientRequestProps)
+export const CreateOrUpdateClientRequestType = JsonClientType
 
-export const ListClientsResponseType = t.readonlyArray(ClientType)
+export const ListClientsResponseType = t.readonlyArray(JsonClientType)
 
 export type ListClientsResponse = t.TypeOf<typeof ListClientsResponseType>
 
-export const BulkCreateOrUpdateClientsRequestType = t.readonlyArray(ClientType)
+export const BulkCreateOrUpdateClientsRequestType = t.readonlyArray(JsonClientType)
 
 export type BulkCreateOrUpdateClientsRequest = t.TypeOf<typeof BulkCreateOrUpdateClientsRequestType>

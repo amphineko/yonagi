@@ -1,10 +1,12 @@
 "use client"
 
 import {
+    BugReport,
     Error,
     Lock,
     Notes,
     Password,
+    PowerSettingsNew,
     Refresh,
     StopCircle,
     SvgIconComponent,
@@ -28,10 +30,11 @@ import CssBaseline from "@mui/material/CssBaseline"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ReactNode, useEffect, useMemo, useState } from "react"
+import { FC, JSX, PropsWithChildren, ReactNode, useCallback, useEffect, useMemo, useState } from "react"
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "react-query"
 
-import { reload as doReload, getStatus } from "./actions"
+import { getStatus, reloadRadiusd, restartRadiusd } from "./actions"
+import { NotificationList, NotificationProvider } from "../lib/notifications"
 
 const queryClient = new QueryClient()
 
@@ -49,27 +52,48 @@ function humanize(seconds: number) {
     }
 }
 
-function ReloadButton(): JSX.Element {
+function RadiusdMenu(): JSX.Element {
     const queryClient = useQueryClient()
-    const { mutate: reload } = useMutation({
-        mutationFn: doReload,
+    const onSuccess = useCallback(async () => {
+        await queryClient.invalidateQueries(["index", "radiusd", "status"])
+    }, [queryClient])
+
+    const { mutate: mutateReload } = useMutation({
+        mutationFn: reloadRadiusd,
         mutationKey: ["index", "radiusd", "reload"],
-        onSuccess: async () => {
-            await queryClient.invalidateQueries(["index", "radiusd", "status"])
-        },
+        onSuccess,
+    })
+
+    const { mutate: mutateRestart } = useMutation({
+        mutationFn: restartRadiusd,
+        mutationKey: ["index", "radiusd", "restart"],
+        onSuccess,
     })
 
     return (
-        <IconButton
-            color="inherit"
-            onClick={() => {
-                reload()
-            }}
-        >
-            <Tooltip title="Reload">
-                <Refresh />
-            </Tooltip>
-        </IconButton>
+        <Box>
+            <IconButton
+                color="inherit"
+                onClick={() => {
+                    mutateReload()
+                }}
+            >
+                <Tooltip title="Reload">
+                    <Refresh />
+                </Tooltip>
+            </IconButton>
+
+            <IconButton
+                color="inherit"
+                onClick={() => {
+                    mutateRestart()
+                }}
+            >
+                <Tooltip title="Restart">
+                    <PowerSettingsNew />
+                </Tooltip>
+            </IconButton>
+        </Box>
     )
 }
 
@@ -154,16 +178,23 @@ function FlexBox({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> })
     return <Box sx={{ display: "flex", ...sx }}>{children}</Box>
 }
 
+function ProviderReducer({ children, providers }: PropsWithChildren<{ providers: FC<PropsWithChildren>[] }>) {
+    return providers.reduce((children, Provider) => {
+        return <Provider>{children}</Provider>
+    }, children)
+}
+
 export function RootClientLayout({ children }: { children: React.ReactNode }): JSX.Element {
     const pathname = usePathname()
     const router = useRouter()
 
-    const tabs: Record<string, { label: string; icon: SvgIconComponent }> = useMemo(
+    const tabs: Record<string, { label: string; icon: SvgIconComponent; hidden?: boolean }> = useMemo(
         () => ({
             "/radiusd/logs": { label: "radiusd.log", icon: Notes },
             "/clients": { label: "NAS Clients", icon: WifiPassword },
             "/mpsks": { label: "Device MPSKs", icon: Password },
             "/pki": { label: "PKI", icon: Lock },
+            "/debug": { label: "Debug", icon: BugReport, hidden: true },
         }),
         [],
     )
@@ -171,41 +202,48 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
 
     const tabNodes = useMemo(
         () =>
-            Array.from(Object.entries(tabs)).map(([href, { label, icon }]) => (
-                <Box key={href} sx={{ flexGrow: 0 }}>
-                    <TabButton href={href} icon={icon} isSelected={href === currentTab} label={label} />
-                </Box>
-            )),
+            Array.from(Object.entries(tabs)).map(([href, { label, hidden, icon }]) =>
+                href === currentTab || !hidden ? (
+                    <Box key={href} sx={{ flexGrow: 0 }}>
+                        <TabButton href={href} icon={icon} isSelected={href === currentTab} label={label} />
+                    </Box>
+                ) : null,
+            ),
         [currentTab, tabs],
     )
 
     useEffect(() => {
-        const defaultTab = Object.keys(tabs).pop()
+        const defaultTab = Object.keys(tabs).shift()
         if (currentTab === "" && defaultTab) {
             router.push(defaultTab)
         }
     })
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider theme={darkTheme}>
-                <CssBaseline />
-                <Stack spacing={1}>
-                    <AppBar color="default" position="sticky">
-                        <Toolbar role="navigation" sx={{ gap: "1em" }} variant="dense">
-                            {tabNodes}
-                            <FlexBox key="title" sx={{ flexGrow: 1, justifyContent: "end" }}>
-                                <SiteTitle>yonagi-web</SiteTitle>
-                            </FlexBox>
-                            <FlexBox key="status" sx={{ alignItems: "center", gap: "0.5em" }}>
-                                <StatusChip />
-                                <ReloadButton />
-                            </FlexBox>
-                        </Toolbar>
-                    </AppBar>
-                    <Box>{children}</Box>
-                </Stack>
-            </ThemeProvider>
-        </QueryClientProvider>
+        <ProviderReducer
+            providers={[
+                ({ children }) => <NotificationProvider>{children}</NotificationProvider>,
+                ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
+                ({ children }) => <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>,
+            ]}
+        >
+            <CssBaseline />
+            <Stack spacing={1}>
+                <AppBar color="default" position="sticky">
+                    <Toolbar role="navigation" sx={{ gap: "1em" }} variant="dense">
+                        {tabNodes}
+                        <FlexBox key="title" sx={{ flexGrow: 1, justifyContent: "end" }}>
+                            <SiteTitle>yonagi-web</SiteTitle>
+                        </FlexBox>
+                        <FlexBox key="status" sx={{ alignItems: "center", gap: "0.5em" }}>
+                            <StatusChip />
+                            <RadiusdMenu />
+                        </FlexBox>
+                    </Toolbar>
+                </AppBar>
+                <Box>{children}</Box>
+            </Stack>
+            <NotificationList />
+        </ProviderReducer>
     )
 }

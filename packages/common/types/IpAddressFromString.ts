@@ -1,27 +1,66 @@
 import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
+import * as ipaddr from "ipaddr.js"
 
-export type IpAddressString = t.Branded<string, "IpAddress">
+import { IpAddress, IpAddressType } from "./IpAddress"
 
-export const IpAddressStringType = new t.Type<IpAddressString, string, unknown>(
-    "IpAddress",
-    (u): u is IpAddressString => E.isRight(IpAddressStringType.validate(u, [])),
+function byteArrayToBigInt(bytes: readonly number[]): bigint {
+    return bytes.reduce((acc, byte) => (acc << 8n) + BigInt(byte), 0n)
+}
+
+function bigIntToByteArray(n: bigint, size: number): number[] {
+    const bytes = new Array<number>(size)
+    for (let i = 0; i < size; i++) {
+        bytes[size - i - 1] = Number(n & 0xffn)
+        n >>= 8n
+    }
+    return bytes
+}
+
+function validateIpAddressString(s: string, c: t.Context): t.Validation<IpAddress> {
+    return F.pipe(
+        E.tryCatch(
+            () => ipaddr.parse(s),
+            (e) => String(e),
+        ),
+        E.orElse((e) => t.failure(s, c, `${e}: ${s}`)),
+        E.flatMap((a) => {
+            const kind = a.kind()
+            switch (kind) {
+                case "ipv4":
+                    return t.success({
+                        family: "inet",
+                        address: byteArrayToBigInt(a.toByteArray()),
+                    })
+                case "ipv6":
+                    return t.success({
+                        family: "inet6",
+                        address: byteArrayToBigInt(a.toByteArray()),
+                    })
+                default:
+                    return t.failure(s, c, `Unknown IP address kind: ${kind as string}`)
+            }
+        }),
+    )
+}
+
+function encodeIpAddressString(a: IpAddress): string {
+    switch (a.family) {
+        case "inet":
+            return ipaddr.fromByteArray(bigIntToByteArray(a.address, 4)).toString()
+        case "inet6":
+            return ipaddr.fromByteArray(bigIntToByteArray(a.address, 16)).toString()
+    }
+}
+
+export const IpAddressFromStringType = new t.Type<IpAddress, string, unknown>(
+    "IpAddressFromString",
+    (u): u is IpAddress => E.isRight(IpAddressType.validate(u, [])),
     (u, c) =>
         F.pipe(
             t.string.validate(u, c),
-            E.flatMap((s): t.Validation<number[]> => {
-                const parts = s.split(".").map((p) => Number(p))
-                return parts.length === 4 && parts.every((p) => Number.isInteger(p))
-                    ? t.success(parts)
-                    : t.failure(u, c, `Malformed IP address: ${s}`)
-            }),
-            E.flatMap((parts) => {
-                return parts.every((p) => p >= 0 && p <= 255)
-                    ? t.success(parts.join("."))
-                    : t.failure(u, c, `IP octets are out of range: ${parts.join(", ")}`)
-            }),
-            E.map((s) => s as IpAddressString),
+            E.flatMap((s) => validateIpAddressString(s, c)),
         ),
-    (a) => a,
+    (a) => encodeIpAddressString(a),
 )

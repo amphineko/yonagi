@@ -5,6 +5,7 @@ import {
     Delete,
     Get,
     Inject,
+    InternalServerErrorException,
     Param,
     Post,
     UseInterceptors,
@@ -12,17 +13,18 @@ import {
 } from "@nestjs/common"
 import {
     BulkCreateOrUpdateClientsRequestType,
-    CreateClientRequestType,
+    CreateOrUpdateClientRequestType,
     ListClientsResponse,
     ListClientsResponseType,
-    UpdateClientRequestType,
 } from "@yonagi/common/api/clients"
+import { NameType } from "@yonagi/common/types/Name"
+import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 
 import { ResponseInterceptor } from "./api.middleware"
-import { EncodeResponseWith, createOrUpdate, resolveOrThrow, validateNameOfRequest } from "./common"
+import { EncodeResponseWith, validateRequestParam } from "./common"
 import { AbstractClientStorage } from "../storages"
 
 @Controller("/api/v1/clients")
@@ -32,42 +34,55 @@ export class RadiusClientController {
 
     @Post("/:name")
     async createOrUpdate(@Param("name") rawName: string, @Body() body: unknown): Promise<void> {
-        await createOrUpdate(
-            rawName,
-            body,
-            CreateClientRequestType,
-            UpdateClientRequestType,
-            (name) => this.clientStorage.getByName(name),
-            (name, value) => this.clientStorage.createOrUpdateByName(name, { name, ...value }),
+        await F.pipe(
+            E.Do,
+            E.bind("name", () => validateRequestParam(rawName, NameType)),
+            E.bind("value", () => validateRequestParam(body, CreateOrUpdateClientRequestType)),
+            E.filterOrElseW(
+                ({ name, value }) => name === value.name,
+                () => new BadRequestException("Name in path and body must be same"),
+            ),
+            TE.fromEither,
+            tryCatchF(
+                ({ name, value }) => this.clientStorage.createOrUpdateByName(name, value),
+                (reason) => new InternalServerErrorException(String(reason)),
+            ),
+            getOrThrow(),
         )()
     }
 
     @Delete("/:name")
     async delete(@Param("name") name: string): Promise<void> {
         await F.pipe(
-            TE.fromEither(validateNameOfRequest(name)),
-            TE.flatMap((name) => TE.tryCatch(async () => await this.clientStorage.deleteByName(name), E.toError)),
-            resolveOrThrow(),
+            TE.fromEither(validateRequestParam(name, NameType)),
+            tryCatchF(
+                (name) => this.clientStorage.deleteByName(name),
+                (reason) => new InternalServerErrorException(String(reason)),
+            ),
+            getOrThrow(),
         )()
     }
 
     @Post("/")
-    async import(@Body() body: unknown): Promise<void> {
+    async bulkCreateOrUpdate(@Body() body: unknown): Promise<void> {
         await F.pipe(
             TE.fromEither(BulkCreateOrUpdateClientsRequestType.decode(body)),
             TE.mapLeft((errors) => new BadRequestException(errors.join(", "))),
-            TE.flatMap((clients) =>
-                TE.tryCatch(async () => {
-                    await this.clientStorage.bulkCreateOrUpdate(clients)
-                }, E.toError),
+            tryCatchF(
+                (clients) => this.clientStorage.bulkCreateOrUpdate(clients),
+                (reason) => new InternalServerErrorException(String(reason)),
             ),
-            resolveOrThrow(),
+            getOrThrow(),
         )()
     }
 
     @Get("/")
     @EncodeResponseWith(ListClientsResponseType)
     async list(): Promise<ListClientsResponse> {
-        return await this.clientStorage.all()
+        return (await this.clientStorage.all()).map((client) => ({
+            name: client.name,
+            ipaddr: client.ipaddr,
+            secret: client.secret,
+        }))
     }
 }

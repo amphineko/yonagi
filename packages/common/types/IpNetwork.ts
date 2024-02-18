@@ -1,39 +1,43 @@
+import * as E from "fp-ts/lib/Either"
+import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
 
-import { IpAddressString, IpAddressStringType } from "./IpAddressFromString"
-import { NetMask, NetMaskType } from "./NetMask"
+import { IntegerRangeType } from "./Integers"
+import { IpAddress, IpAddressType } from "./IpAddress"
+
+/**
+ * Internal IP network representation.
+ */
 
 export interface IpNetwork {
-    address: IpAddressString
-    netmask: NetMask
-}
-
-export interface EncodedIpNetwork {
-    address: string
+    address: IpAddress
     netmask: number
 }
 
-export const IpNetworkType: t.Type<IpNetwork, EncodedIpNetwork> = t.type({
-    address: IpAddressStringType,
-    netmask: NetMaskType,
+const InetNetMaskType = IntegerRangeType(0, 32)
+const Inet6NetMaskType = IntegerRangeType(0, 128)
+
+function getNetMaskTypeByFamily(family: "inet" | "inet6"): t.Type<number> {
+    switch (family) {
+        case "inet":
+            return InetNetMaskType
+        case "inet6":
+            return Inet6NetMaskType
+    }
+}
+
+const BaseIpNetworkType: t.Type<IpNetwork> = t.type({
+    address: IpAddressType,
+    netmask: t.number,
 })
 
-export const IpNetworkFromStringType = new t.Type<IpNetwork, string, unknown>(
-    "IpNetworkFromString",
-    (u): u is IpNetwork => IpNetworkType.is(u),
-    (u, c) => {
-        if (typeof u !== "string") {
-            return t.failure(u, c)
-        }
-
-        const parts = u.split("/")
-        return IpNetworkType.validate(
-            {
-                address: parts[0],
-                netmask: parts[1] ?? 32,
-            },
-            c,
-        )
-    },
-    (a) => `${a.address}/${a.netmask}`,
+export const IpNetworkType = new t.Type<IpNetwork>(
+    "IpNetwork",
+    (u): u is IpNetwork => E.isRight(IpNetworkType.validate(u, [])),
+    (u, c) =>
+        F.pipe(
+            BaseIpNetworkType.validate(u, c),
+            E.tap(({ address, netmask }) => getNetMaskTypeByFamily(address.family).validate(netmask, c)),
+        ),
+    (a) => a,
 )
