@@ -21,7 +21,8 @@
 			"extensions": [
 				"bierner.github-markdown-preview",
 				"dbaeumer.vscode-eslint",
-				"esbenp.prettier-vscode"
+				"esbenp.prettier-vscode",
+				"qwtel.sqlite-viewer"
 			],
 			"settings": {
 				"[typescript]": {

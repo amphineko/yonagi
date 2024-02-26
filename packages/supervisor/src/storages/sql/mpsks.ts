@@ -130,3 +130,5 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
         )()
     }
 }
+
+export const entities = [SqlMPSKEntity]

@@ -1,14 +1,24 @@
 import { Module } from "@nestjs/common"
 
-import { CryptoEngineShim } from "./cryptoEngine"
-import { Pki } from "./pki"
-import { PkiState } from "./storage"
+import { CertificateAuthorityState, CertificateFactory, ClientCertificateState, ServerCertificateState } from "."
+import { PkijsCertificateFactory } from "./pkijs"
+import { CryptoEngineShim } from "./pkijs/cryptoEngine"
 import { ConfigModule } from "../config"
+import { StorageModule } from "../storages/module"
 
 @Module({
-    exports: [Pki],
-    imports: [ConfigModule],
-    providers: [CryptoEngineShim, Pki, PkiState],
+    exports: [CertificateAuthorityState, ServerCertificateState, ClientCertificateState],
+    imports: [ConfigModule, PkiModule, StorageModule],
+    providers: [
+        CryptoEngineShim,
+        {
+            provide: CertificateFactory,
+            useClass: PkijsCertificateFactory,
+        },
+        CertificateAuthorityState,
+        ServerCertificateState,
+        ClientCertificateState,
+    ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class PkiModule {}

@@ -1,19 +1,35 @@
 import * as t from "io-ts"
 
-import { RelativeDistinguishedNamesType } from "../types/pki/RelativeDistinguishedNames"
-import { SerialNumberStringType } from "../types/pki/SerialNumberString"
+import {
+    CertificateMetadata,
+    CertificateMetadataType,
+    EncodedCertificateMetadata,
+} from "../types/pki/CertificateMetadata"
+import { RelativeDistinguishedNames, RelativeDistinguishedNamesType } from "../types/pki/RelativeDistinguishedNames"
 
-export const CertificateSummaryType = t.type({
-    issuer: RelativeDistinguishedNamesType,
-    hexSerialNumber: SerialNumberStringType,
-    publicKey: t.string,
-    signature: t.string,
-    subject: RelativeDistinguishedNamesType,
-    validNotAfter: t.number,
-    validNotBefore: t.number,
-})
+/**
+ * Extended metadata for user interface
+ */
+export interface CertificateSummary extends CertificateMetadata {
+    issuer: RelativeDistinguishedNames
+    publicKey: string
+    signature: string
+}
 
-export type CertificateSummary = t.TypeOf<typeof CertificateSummaryType>
+interface EncodedCertificateSummary extends EncodedCertificateMetadata {
+    issuer: RelativeDistinguishedNames
+    publicKey: string
+    signature: string
+}
+
+export const CertificateSummaryType: t.Type<CertificateSummary, EncodedCertificateSummary> = t.intersection([
+    CertificateMetadataType,
+    t.type({
+        issuer: RelativeDistinguishedNamesType,
+        publicKey: t.string,
+        signature: t.string,
+    }),
+])
 
 export const GetPkiSummaryResponse = t.partial({
     ca: CertificateSummaryType,

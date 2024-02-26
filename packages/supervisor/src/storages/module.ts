@@ -1,20 +1,25 @@
 import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardRef } from "@nestjs/common"
 import { DataSource } from "typeorm"
 
-import { AbstractClientStorage, AbstractMPSKStorage } from "."
+import { AbstractCertificateStorage, AbstractClientStorage, AbstractMPSKStorage } from "."
 import { SqlClientStorage } from "./sql/clients"
 import { SqlMPSKStorage } from "./sql/mpsks"
+import { SqliteCertificateStorage } from "./sql/pki"
 import { SqliteDataSource } from "./sql/sqlite"
 import { Config, ConfigModule } from "../config"
 
 @Module({
-    exports: [AbstractClientStorage, AbstractMPSKStorage],
+    exports: [AbstractCertificateStorage, AbstractClientStorage, AbstractMPSKStorage],
     imports: [ConfigModule],
     providers: [
         {
             provide: DataSource,
             useFactory: (config: Config) => new SqliteDataSource(config),
             inject: [Config],
+        },
+        {
+            provide: AbstractCertificateStorage,
+            useClass: SqliteCertificateStorage,
         },
         {
             provide: AbstractClientStorage,

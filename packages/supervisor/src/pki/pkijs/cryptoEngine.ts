@@ -5,12 +5,10 @@ import { Crypto } from "@peculiar/webcrypto"
 import * as asn1js from "asn1js"
 import * as pkijs from "pkijs"
 
-import { pkcs12DeriveSha1Key } from "./crypto"
+import { OID_pbeWithSHAAnd3_KeyTripleDES_CBC, OID_pbeWithSHAAnd40BitRC2_CBC } from "../consts"
+import { pkcs12DeriveSha1Key } from "../utils/pkcs12"
 
-const OID_pbeWithSHAAnd3_KeyTripleDES_CBC = "1.2.840.113549.1.12.1.3"
-const OID_pbeWithSHAAnd40BitRC2_CBC = "1.2.840.113549.1.12.1.6"
-
-export function encryptWithPbeSha1(
+function encryptWithPbeSha1(
     message: Buffer,
     password: string,
     salt: Buffer,
@@ -36,7 +34,7 @@ export function encryptWithPbeSha1(
     return encrypted
 }
 
-export function pkcs7Pad(message: Buffer, blockSize: number): Buffer {
+function pkcs7Pad(message: Buffer, blockSize: number): Buffer {
     const size = blockSize - (message.length % blockSize)
     return Buffer.concat([message, Buffer.alloc(size, size)])
 }

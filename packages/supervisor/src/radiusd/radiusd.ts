@@ -1,4 +1,5 @@
 import { ChildProcess, spawn } from "child_process"
+import { writeFile } from "fs/promises"
 import { basename } from "path"
 
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
@@ -6,8 +7,8 @@ import pino from "pino"
 
 import { Config } from "../config"
 import { generateConfigs } from "../configs"
-import { Pki } from "../pki/pki"
-import { AbstractClientStorage, AbstractMPSKStorage } from "../storages"
+import { CertificateAuthorityState, ServerCertificateState } from "../pki"
+import { AbstractClientStorage } from "../storages"
 
 const logger = pino({ name: `${basename(__dirname)}/${basename(__filename)}` })
 
@@ -194,25 +195,6 @@ export class Radiusd {
 
     private _process: Process
 
-    constructor(
-        @Inject(forwardRef(() => AbstractClientStorage)) private clientStorage: AbstractClientStorage,
-        @Inject(forwardRef(() => Config)) private config: Config,
-        @Inject(forwardRef(() => AbstractMPSKStorage)) private mpskStorage: AbstractMPSKStorage,
-        @Inject(forwardRef(() => Pki)) private pki: Pki,
-    ) {
-        this._process = new Process(config.radiusdPath)
-    }
-
-    private async _regenerateFiles(): Promise<void> {
-        const clients = await this.clientStorage.all()
-        const pkiDeployed = await this.pki.deployToRadiusd()
-        await generateConfigs({
-            clients,
-            pki: pkiDeployed ? this.config.pkiOutputPath : undefined,
-            raddbPath: this.config.raddbDirPath,
-        })
-    }
-
     async start(): Promise<void> {
         await this._regenerateFiles()
         await this._process.start()
@@ -230,5 +212,55 @@ export class Radiusd {
     async restart(): Promise<void> {
         await this.stop()
         await this.start()
+    }
+
+    private async _regenerateFiles(): Promise<void> {
+        // TODO(amphineko): remove deprecated static client generation
+        const clients = await this.clientStorage.all()
+        const pkiDeployed = await this._deployPki()
+        await generateConfigs({
+            clients,
+            pki: pkiDeployed ? this.config.pkiOutputPath : undefined,
+            raddbPath: this.config.raddbDirPath,
+        })
+    }
+
+    private async _deployPki(): Promise<boolean> {
+        const ca = await this.ca.get()
+        if (!ca) {
+            logger.warn("Cannot deploy PKI: CA not configured")
+            return false
+        }
+        const caCertPem = await ca.exportCertificateAsPem()
+
+        const server = await this.server.get()
+        if (!server) {
+            logger.warn("Cannot deploy PKI: server certificate not configured")
+            return false
+        }
+
+        const serverCertPem = await server.exportCertificateAsPem()
+        const serverKeyPem = await server.exportPrivateKeyPkcs8AsPem()
+        if (!serverKeyPem) {
+            logger.fatal("Cannot deploy PKI: unpexected null server key")
+            return false
+        }
+
+        await Promise.all([
+            writeFile(this.config.pkiOutputPath.ca.cert, caCertPem),
+            writeFile(this.config.pkiOutputPath.server.cert, serverCertPem),
+            writeFile(this.config.pkiOutputPath.server.privKey, serverKeyPem),
+        ])
+
+        return true
+    }
+
+    constructor(
+        @Inject(forwardRef(() => AbstractClientStorage)) private clientStorage: AbstractClientStorage,
+        @Inject(forwardRef(() => Config)) private config: Config,
+        @Inject(forwardRef(() => CertificateAuthorityState)) private ca: CertificateAuthorityState,
+        @Inject(forwardRef(() => ServerCertificateState)) private server: ServerCertificateState,
+    ) {
+        this._process = new Process(config.radiusdPath)
     }
 }
