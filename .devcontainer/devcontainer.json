@@ -14,15 +14,15 @@
 		"source=${localWorkspaceFolder}/data,target=/data,type=bind,consistency=cached"
 	],
 	"features": {
-		"ghcr.io/devcontainers/features/common-utils:2": {},
-		"ghcr.io/devcontainers/features/git:1": {}
+		"ghcr.io/devcontainers/features/common-utils:2": {}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"bierner.github-markdown-preview",
 				"dbaeumer.vscode-eslint",
-				"esbenp.prettier-vscode"
+				"esbenp.prettier-vscode",
+				"qwtel.sqlite-viewer"
 			],
 			"settings": {
 				"[typescript]": {

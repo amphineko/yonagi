@@ -1,5 +1,5 @@
-import { CallingStationId, CallingStationIdType } from "@yonagi/common/types/CallingStationId"
-import { PSK, PSKType } from "@yonagi/common/types/PSK"
+import { CallingStationId, CallingStationIdType } from "@yonagi/common/types/mpsks/CallingStationId"
+import { PSK, PSKType } from "@yonagi/common/types/mpsks/PSK"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"
 import * as t from "io-ts"

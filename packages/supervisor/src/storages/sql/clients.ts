@@ -109,3 +109,5 @@ export class SqlClientStorage extends AbstractClientStorage {
         )
     }
 }
+
+export const entities = [SqlClientEntity]

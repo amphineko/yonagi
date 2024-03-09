@@ -1,9 +1,9 @@
 import { readFile, writeFile } from "fs/promises"
 
-import { CallingStationId } from "@yonagi/common/types/CallingStationId"
 import { Client, ClientType } from "@yonagi/common/types/Client"
-import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name } from "@yonagi/common/types/Name"
+import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/mpsks/MPSK"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"
 import * as t from "io-ts"

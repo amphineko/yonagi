@@ -13,3 +13,9 @@ export function getOrThrow(): <A, E extends Error = Error>(TE: TE.TaskEither<E, 
         throw e
     })
 }
+
+export function filterNullish<E2, A>(
+    onNullish: () => E2,
+): <E1>(ma: TE.TaskEither<E1, A>) => TE.TaskEither<E1 | E2, NonNullable<A>> {
+    return TE.flatMap((a) => (a ? TE.right(a) : TE.left(onNullish())))
+}

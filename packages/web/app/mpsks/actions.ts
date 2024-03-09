@@ -5,7 +5,7 @@ import {
     CreateOrUpdateMPSKRequestType,
     ListMPSKsResponseType,
 } from "@yonagi/common/api/mpsks"
-import { CallingStationIdAuthentication } from "@yonagi/common/types/MPSK"
+import { CallingStationIdAuthentication } from "@yonagi/common/types/mpsks/MPSK"
 import * as t from "io-ts"
 
 import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"

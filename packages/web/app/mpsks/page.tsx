@@ -14,10 +14,10 @@ import {
     Tooltip,
 } from "@mui/material"
 import { BulkCreateOrUpdateMPSKsRequestType, ListMPSKsResponseType } from "@yonagi/common/api/mpsks"
-import { CallingStationIdType } from "@yonagi/common/types/CallingStationId"
-import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name, NameType } from "@yonagi/common/types/Name"
-import { PSKType } from "@yonagi/common/types/PSK"
+import { CallingStationIdType } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/mpsks/MPSK"
+import { PSKType } from "@yonagi/common/types/mpsks/PSK"
 import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"

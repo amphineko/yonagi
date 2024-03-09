@@ -7,7 +7,7 @@ import {
     ExportClientCertificateP12RequestType,
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
-import { SerialNumberString } from "@yonagi/common/types/SerialNumberString"
+import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
 import * as t from "io-ts"
 
 import { deleteEndpoint, getTypedEndpoint, postTypedEndpoint } from "../../lib/actions"

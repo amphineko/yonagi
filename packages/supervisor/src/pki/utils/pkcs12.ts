@@ -1,7 +1,7 @@
 import assert from "node:assert"
 import * as crypto from "node:crypto"
 
-export function sha1(...messages: Buffer[]): Buffer {
+function sha1(...messages: Buffer[]): Buffer {
     return crypto.createHash("sha1").update(Buffer.concat(messages)).digest()
 }
 

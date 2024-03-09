@@ -14,3 +14,6 @@ export const OID_PKCS12_BagId_CertBag = "1.2.840.113549.1.12.10.1.3"
 
 export const RSA_KEY_ALG_NAME = "RSASSA-PKCS1-v1_5"
 export const RSA_KEY_HASH_NAME = "SHA-256"
+
+export const OID_pbeWithSHAAnd3_KeyTripleDES_CBC = "1.2.840.113549.1.12.1.3"
+export const OID_pbeWithSHAAnd40BitRC2_CBC = "1.2.840.113549.1.12.1.6"

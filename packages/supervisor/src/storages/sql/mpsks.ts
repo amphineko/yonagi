@@ -1,7 +1,7 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
-import { CallingStationId } from "@yonagi/common/types/CallingStationId"
-import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/MPSK"
 import { Name } from "@yonagi/common/types/Name"
+import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/mpsks/MPSK"
 import { mapValidationLeftError } from "@yonagi/common/utils/Either"
 import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as A from "fp-ts/lib/Array"
@@ -130,3 +130,5 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
         )()
     }
 }
+
+export const entities = [SqlMPSKEntity]

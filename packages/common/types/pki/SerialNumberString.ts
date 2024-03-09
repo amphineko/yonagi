@@ -11,11 +11,19 @@ export const SerialNumberStringType = new t.Type<string, string, unknown>(
     (u, c) =>
         F.pipe(
             t.string.validate(u, c),
-            E.map((u) => u.split(":").map((s) => s.trim().toLowerCase())),
-            E.flatMap((u) =>
-                u.length > 0 && u.length <= 20 && u.every((s) => /^[0-9a-f]{2}$/.test(s))
-                    ? t.success(u.join(":"))
-                    : t.failure(u, c, "Input is not a valid serial number"),
+            E.map((s) => s.toLowerCase().replace(/:/g, "")),
+            E.tap(
+                F.flow(
+                    E.fromPredicate(
+                        (s) => /^[0-9a-f]+$/.test(s),
+                        () => "Serial number contains non-hexadecimal characters",
+                    ),
+                    E.filterOrElse(
+                        (s) => s.length === 32,
+                        () => "Serial number is not 16 bytes long",
+                    ),
+                    E.orElse((e) => t.failure(u, c, e)),
+                ),
             ),
         ),
     (a) => a,

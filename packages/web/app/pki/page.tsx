@@ -23,9 +23,9 @@ import {
     GetPkiSummaryResponse,
 } from "@yonagi/common/api/pki"
 import { PositiveIntegerFromString } from "@yonagi/common/types/Integers"
-import { RelativeDistinguishedNames } from "@yonagi/common/types/RelativeDistinguishedNames"
-import { SerialNumberString } from "@yonagi/common/types/SerialNumberString"
 import { NonEmptyStringType } from "@yonagi/common/types/StringWithLengthRange"
+import { RelativeDistinguishedNames } from "@yonagi/common/types/pki/RelativeDistinguishedNames"
+import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
 import { useState } from "react"
 import { useMutation, useQuery } from "react-query"
 
@@ -99,8 +99,8 @@ function CertificateDisplayAccordionDetails({
 }) {
     const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
     const { isLoading: isDeleting, mutate: mutateDelete } = useMutation({
-        mutationFn: async () => await submitDelete(cert.hexSerialNumber),
-        mutationKey: ["pki", "delete", cert.hexSerialNumber],
+        mutationFn: async () => await submitDelete(cert.serialNumber),
+        mutationKey: ["pki", "delete", cert.serialNumber],
         onSettled: invalidate,
     })
     const {
@@ -113,7 +113,7 @@ function CertificateDisplayAccordionDetails({
         queryFn: async () => {
             let blobUrl: string
             if (!data) {
-                const base64 = await exportClientCertificateP12(cert.hexSerialNumber, "neko")
+                const base64 = await exportClientCertificateP12(cert.serialNumber, "neko")
                 const buffer = Buffer.from(base64, "base64")
                 const blob = new Blob([buffer], { type: "application/x-pkcs12" })
                 blobUrl = URL.createObjectURL(blob)
@@ -123,12 +123,12 @@ function CertificateDisplayAccordionDetails({
 
             const a = document.createElement("a")
             a.href = blobUrl
-            a.download = `${cert.hexSerialNumber}.p12`
+            a.download = `${cert.serialNumber}.p12`
             a.click()
 
             return blobUrl
         },
-        queryKey: ["pki", "download", cert.hexSerialNumber],
+        queryKey: ["pki", "download", cert.serialNumber],
         retry: false,
     })
     const [deletePopoverAnchor, setDeletePopoverAnchor] = useState<HTMLElement | null>(null)
@@ -144,12 +144,12 @@ function CertificateDisplayAccordionDetails({
                         <RDN>{cert.issuer}</RDN>
                     </CertificateDetailCell>
                     <CertificateDetailCell label="Valid Not Before">
-                        <DateTime type="notBefore">{cert.validNotBefore}</DateTime>
+                        <DateTime type="notBefore">{cert.notBefore.getTime()}</DateTime>
                     </CertificateDetailCell>
                     <CertificateDetailCell label="Valid Not After">
-                        <DateTime type="notAfter">{cert.validNotAfter}</DateTime>
+                        <DateTime type="notAfter">{cert.notAfter.getTime()}</DateTime>
                     </CertificateDetailCell>
-                    <CertificateDetailCell label="Serial Number">{cert.hexSerialNumber}</CertificateDetailCell>
+                    <CertificateDetailCell label="Serial Number">{cert.serialNumber}</CertificateDetailCell>
                     <CertificateDetailCell label="Signature">{cert.signature}</CertificateDetailCell>
                 </Grid>
                 <Divider />
@@ -388,7 +388,7 @@ export default function PkiDashboardPage() {
                         delete={(serial) => deleteClientCertificate(serial)}
                         downloadable
                         isLoading={!hasData}
-                        key={clientCert.hexSerialNumber}
+                        key={clientCert.serialNumber}
                         title="Client"
                     />
                 ))}
