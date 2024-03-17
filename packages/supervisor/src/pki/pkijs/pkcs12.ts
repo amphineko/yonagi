@@ -1,7 +1,12 @@
 import * as asn1js from "asn1js"
 import * as pkijs from "pkijs"
 
-import { OID_PKCS12_BagId_CertBag, OID_PKCS12_BagId_PKCS8ShroudedKeyBag, OID_PKCS9_LocalKeyId } from "../consts"
+import {
+    OID_PKCS12_BagId_CertBag,
+    OID_PKCS12_BagId_PKCS8ShroudedKeyBag,
+    OID_PKCS9_FriendlyName,
+    OID_PKCS9_LocalKeyId,
+} from "../consts"
 
 function getSafeContentEncryptionParams(algorithm: "DES-EDE3-CBC" | "RC2-40-CBC", password: ArrayBuffer) {
     const params = {
@@ -41,6 +46,10 @@ export async function exportAsPkcs12(
                     }),
                 ],
             }),
+            new pkijs.Attribute({
+                type: OID_PKCS9_FriendlyName,
+                values: [new asn1js.BmpString({ value: "certificate" })],
+            }),
         ],
     })
 
@@ -54,6 +63,12 @@ export async function exportAsPkcs12(
                         bagValue: new pkijs.CertBag({
                             parsedValue: cert,
                         }),
+                        bagAttributes: [
+                            new pkijs.Attribute({
+                                type: OID_PKCS9_FriendlyName,
+                                values: [new asn1js.BmpString({ value: "trust anchor" })],
+                            }),
+                        ],
                     }),
             ),
         ],
@@ -71,6 +86,10 @@ export async function exportAsPkcs12(
                 bagId: OID_PKCS12_BagId_PKCS8ShroudedKeyBag,
                 bagValue: pkcs8KeyBag,
                 bagAttributes: [
+                    new pkijs.Attribute({
+                        type: OID_PKCS9_FriendlyName,
+                        values: [new asn1js.BmpString({ value: "private key" })],
+                    }),
                     new pkijs.Attribute({
                         type: OID_PKCS9_LocalKeyId,
                         values: [new asn1js.OctetString({ valueHex: certKeyId })],
