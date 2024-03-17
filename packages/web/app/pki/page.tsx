@@ -37,10 +37,10 @@ import {
     deleteClientCertificate,
     deleteServerCertificate,
     exportCertificateAuthorityPem,
-    exportClientCertificateP12,
     getPkiSummary,
 } from "./actions"
-import { base64ToBlob, downloadBlob, useNonce, useQueryHelpers } from "../../lib/client"
+import { useExportPkcs12Dialog } from "./exportDialog"
+import { downloadBlob, useNonce, useQueryHelpers } from "../../lib/client"
 import { ValidatedForm, ValidatedTextField } from "../../lib/forms"
 import { useNotifications } from "../../lib/notifications"
 
@@ -109,20 +109,6 @@ function CertificateDisplayAccordionDetails({
     })
     const { notifyError } = useNotifications()
 
-    const { isLoading: isExportingP12, refetch: refetchP12 } = useQuery({
-        enabled: false,
-        queryFn: async () => {
-            const base64 = await exportClientCertificateP12(cert.serialNumber, "neko")
-            const blob = base64ToBlob(base64, "application/x-pkcs12")
-            downloadBlob(blob, `${cert.serialNumber}.p12`)
-        },
-        onError: (error) => {
-            notifyError("Failed to export PKCS#12", String(error))
-        },
-        queryKey: ["pki", "download", cert.serialNumber],
-        retry: false,
-    })
-
     const { isLoading: isExportingCaPem, refetch: refetchCaPem } = useQuery({
         enabled: false,
         queryFn: async () => {
@@ -135,6 +121,10 @@ function CertificateDisplayAccordionDetails({
         },
         queryKey: ["pki", "download", cert.serialNumber],
         retry: false,
+    })
+
+    const { dialog: exportPkcs12Dialog, open: openExportPkcs12Dialog } = useExportPkcs12Dialog({
+        serialNumber: cert.serialNumber,
     })
 
     const [deletePopoverAnchor, setDeletePopoverAnchor] = useState<HTMLElement | null>(null)
@@ -189,16 +179,13 @@ function CertificateDisplayAccordionDetails({
                     {canExportP12 && (
                         <Button
                             color="primary"
-                            disabled={isExportingP12}
                             onClick={() => {
-                                refetchP12().catch(() => {
-                                    /* */
-                                })
+                                openExportPkcs12Dialog()
                             }}
-                            startIcon={isExportingP12 ? <CircularProgress size="1em" /> : <Download />}
+                            startIcon={<Download />}
                             variant="contained"
                         >
-                            Download
+                            PKCS#12
                         </Button>
                     )}
                 </Stack>
@@ -231,6 +218,7 @@ function CertificateDisplayAccordionDetails({
                     Confirm Delete
                 </Button>
             </Popover>
+            {canExportP12 && exportPkcs12Dialog}
         </AccordionDetails>
     )
 }
