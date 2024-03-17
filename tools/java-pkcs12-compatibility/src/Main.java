@@ -1,6 +1,6 @@
-import javax.swing.*;
 import java.awt.*;
 import java.security.KeyStore;
+import javax.swing.*;
 
 public class Main {
     private static void remakeKeyStore(String filename, String outputFilename, String password) throws Exception {
@@ -19,7 +19,7 @@ public class Main {
             ksOut.setCertificateEntry(alias, cert);
 
             var key = ksIn.getKey(alias, password.toCharArray());
-            ksOut.setKeyEntry(alias, key, password.toCharArray(), new java.security.cert.Certificate[]{cert});
+            ksOut.setKeyEntry(alias, key, password.toCharArray(), new java.security.cert.Certificate[] {cert});
 
             var chain = ksIn.getCertificateChain(alias);
             if (chain != null) {
