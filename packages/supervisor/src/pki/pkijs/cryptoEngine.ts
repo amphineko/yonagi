@@ -34,11 +34,6 @@ function encryptWithPbeSha1(
     return encrypted
 }
 
-function pkcs7Pad(message: Buffer, blockSize: number): Buffer {
-    const size = blockSize - (message.length % blockSize)
-    return Buffer.concat([message, Buffer.alloc(size, size)])
-}
-
 /**
  * A shim for pkijs.CryptoEngine that implements the legacy pbeWithSHA1And3-KeyTripleDES-CBC.
  */
@@ -77,7 +72,7 @@ export class CryptoEngineShim extends pkijs.CryptoEngine {
     private encryptEncryptedContentInfoWithPbe1(
         parameters: pkijs.CryptoEngineEncryptParams,
     ): pkijs.EncryptedContentInfo {
-        const contentToEncrypt = pkcs7Pad(Buffer.from(parameters.contentToEncrypt), 8)
+        const contentToEncrypt = Buffer.from(parameters.contentToEncrypt)
         const {
             contentEncryptionAlgorithm: { name: algorithm },
             contentType,
