@@ -36,11 +36,13 @@ import {
     deleteCertificateAuthority,
     deleteClientCertificate,
     deleteServerCertificate,
+    exportCertificateAuthorityPem,
     exportClientCertificateP12,
     getPkiSummary,
 } from "./actions"
-import { useNonce, useQueryHelpers } from "../../lib/client"
+import { base64ToBlob, downloadBlob, useNonce, useQueryHelpers } from "../../lib/client"
 import { ValidatedForm, ValidatedTextField } from "../../lib/forms"
+import { useNotifications } from "../../lib/notifications"
 
 const PKI_QUERY_KEY = ["pki", "summary"]
 
@@ -89,13 +91,15 @@ function CertificateDetailCell({ children, label }: { children: React.ReactNode;
 }
 
 function CertificateDisplayAccordionDetails({
+    canExportCaPem,
+    canExportP12,
     cert,
     delete: submitDelete,
-    downloadable,
 }: {
+    canExportCaPem?: boolean
+    canExportP12?: boolean
     cert: CertificateSummary
     delete: (serial: SerialNumberString) => Promise<unknown>
-    downloadable?: boolean
 }) {
     const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
     const { isLoading: isDeleting, mutate: mutateDelete } = useMutation({
@@ -103,34 +107,36 @@ function CertificateDisplayAccordionDetails({
         mutationKey: ["pki", "delete", cert.serialNumber],
         onSettled: invalidate,
     })
-    const {
-        data,
-        error: exportError,
-        isLoading: isExporting,
-        refetch: download,
-    } = useQuery({
+    const { notifyError } = useNotifications()
+
+    const { isLoading: isExportingP12, refetch: refetchP12 } = useQuery({
         enabled: false,
         queryFn: async () => {
-            let blobUrl: string
-            if (!data) {
-                const base64 = await exportClientCertificateP12(cert.serialNumber, "neko")
-                const buffer = Buffer.from(base64, "base64")
-                const blob = new Blob([buffer], { type: "application/x-pkcs12" })
-                blobUrl = URL.createObjectURL(blob)
-            } else {
-                blobUrl = data
-            }
-
-            const a = document.createElement("a")
-            a.href = blobUrl
-            a.download = `${cert.serialNumber}.p12`
-            a.click()
-
-            return blobUrl
+            const base64 = await exportClientCertificateP12(cert.serialNumber, "neko")
+            const blob = base64ToBlob(base64, "application/x-pkcs12")
+            downloadBlob(blob, `${cert.serialNumber}.p12`)
+        },
+        onError: (error) => {
+            notifyError("Failed to export PKCS#12", String(error))
         },
         queryKey: ["pki", "download", cert.serialNumber],
         retry: false,
     })
+
+    const { isLoading: isExportingCaPem, refetch: refetchCaPem } = useQuery({
+        enabled: false,
+        queryFn: async () => {
+            const pem = await exportCertificateAuthorityPem()
+            const blob = new Blob([pem], { type: "application/x-pem-file" })
+            downloadBlob(blob, `${cert.serialNumber}.crt`)
+        },
+        onError: (error) => {
+            notifyError("Failed to download certificate", String(error))
+        },
+        queryKey: ["pki", "download", cert.serialNumber],
+        retry: false,
+    })
+
     const [deletePopoverAnchor, setDeletePopoverAnchor] = useState<HTMLElement | null>(null)
 
     return (
@@ -165,16 +171,31 @@ function CertificateDisplayAccordionDetails({
                     >
                         Delete
                     </Button>
-                    {downloadable && (
+                    {canExportCaPem && (
                         <Button
                             color="primary"
-                            disabled={isExporting}
+                            disabled={isExportingCaPem}
                             onClick={() => {
-                                download().catch(() => {
+                                refetchCaPem().catch(() => {
                                     /* */
                                 })
                             }}
-                            startIcon={isExporting ? <CircularProgress /> : exportError ? <Dangerous /> : <Download />}
+                            startIcon={isExportingCaPem ? <CircularProgress size="1em" /> : <Download />}
+                            variant="contained"
+                        >
+                            Certificate
+                        </Button>
+                    )}
+                    {canExportP12 && (
+                        <Button
+                            color="primary"
+                            disabled={isExportingP12}
+                            onClick={() => {
+                                refetchP12().catch(() => {
+                                    /* */
+                                })
+                            }}
+                            startIcon={isExportingP12 ? <CircularProgress size="1em" /> : <Download />}
                             variant="contained"
                         >
                             Download
@@ -294,9 +315,10 @@ function CertificateAccordion(
         title: string
     } & (
         | {
+              canExportCaPem?: boolean
+              canExportP12?: boolean
               cert?: CertificateSummary
               delete: (serial: SerialNumberString) => Promise<unknown>
-              downloadable?: boolean
           }
         | {
               cert?: never
@@ -327,7 +349,8 @@ function CertificateAccordion(
                 <CertificateDisplayAccordionDetails
                     cert={props.cert}
                     delete={(serial) => props.delete(serial)}
-                    downloadable={props.downloadable}
+                    canExportCaPem={props.canExportCaPem}
+                    canExportP12={props.canExportP12}
                 />
             ) : props.create ? (
                 <CertificateCreateAccordionDetails create={props.create} />
@@ -362,6 +385,7 @@ export default function PkiDashboardPage() {
             <Box>
                 <DashboardSectionTitle>Infrastructure</DashboardSectionTitle>
                 <CertificateAccordion
+                    canExportCaPem
                     cert={data?.ca}
                     create={(form) => createCertificateAuthority(form).finally(increaseNonce)}
                     defaultExpanded
@@ -386,7 +410,7 @@ export default function PkiDashboardPage() {
                     <CertificateAccordion
                         cert={clientCert}
                         delete={(serial) => deleteClientCertificate(serial)}
-                        downloadable
+                        canExportP12
                         isLoading={!hasData}
                         key={clientCert.serialNumber}
                         title="Client"

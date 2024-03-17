@@ -66,6 +66,16 @@ export class PkiController {
         )
     }
 
+    @Get("/ca/pem")
+    @EncodeResponseWith(t.string)
+    async getCertificateAuthorityPem(): Promise<string> {
+        const ca = await this.ca.get()
+        if (!ca) {
+            throw new NotFoundException(null, "CA certificate not found")
+        }
+        return ca.exportCertificateAsPem()
+    }
+
     @Delete("/ca/:serial")
     @EncodeResponseWith(t.undefined)
     revokeCertificateAuthority(@Param("serial") unknownSerial: unknown): Promise<void> {
