@@ -2,7 +2,7 @@ set -o errexit -o nounset -o pipefail
 
 # run eapol_test
 config=$(mktemp)
-cat <<EOF > "$config"
+cat <<EOF >"$config"
 network={
     ssid="neko"
     key_mgmt=WPA-EAP
