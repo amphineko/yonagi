@@ -40,6 +40,10 @@ export async function deleteClientCertificate(serial: SerialNumberString): Promi
     await deleteEndpoint(`api/v1/pki/clients/${serial}`)
 }
 
+export async function exportCertificateAuthorityPem(): Promise<string> {
+    return await getTypedEndpoint(t.string, `api/v1/pki/ca/pem`)
+}
+
 export async function exportClientCertificateP12(serial: SerialNumberString, password: string): Promise<string> {
     return await postTypedEndpoint(
         t.string,

@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+group 'maho.science.yonagi.android-pkcs12-compatibility-test'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+dependencies {
+}
