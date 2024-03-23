@@ -60,7 +60,7 @@ export async function generateEapModule({ pki, raddbPath }: RaddbGenParams): Pro
                 tls {
                     tls = tls-common
                 }
-                
+
                 peap {
                     tls = tls-common
                     default_eap_type = mschapv2
