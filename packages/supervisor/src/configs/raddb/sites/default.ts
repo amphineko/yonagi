@@ -15,16 +15,12 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
     let eapAuthenticate = ""
     if (pki) {
         eapAuthorize = `
-                    # eap
-                    eap {
-                        ok = return
-                    }
+                        outer-eap {
+                            ok = return
+                        }
         `
         eapAuthenticate = `
-                    eap
-                    Auth-Type EAP {
-                        eap
-                    }
+                    outer-eap
         `
     } else {
         logger.info("No PKI deployed, disabling EAP for default site")
@@ -34,7 +30,6 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
         defaultSitePath,
         dedent(`
             server default {
-
                 listen {
                     ipaddr = *
                     type = auth

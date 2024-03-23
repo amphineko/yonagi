@@ -26,6 +26,8 @@ export async function generateRestModule({ raddbPath }: RaddbGenParams): Promise
         createRestModule("dyn_clients", "clients", baseUrl),
         // mac auth
         createRestModule("mac_auth", "mac", baseUrl),
+        // password-based eap
+        createRestModule("passwords", "passwords", baseUrl),
     ]
 
     const configPath = path.join(raddbPath, "mods-enabled", "rest")

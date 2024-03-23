@@ -6,11 +6,11 @@ import {
     InternalServerErrorException,
     NotFoundException,
     Post,
-    forwardRef,
 } from "@nestjs/common"
 import { Client } from "@yonagi/common/types/Client"
 import { NameType } from "@yonagi/common/types/Name"
 import { CallingStationIdAuthentication } from "@yonagi/common/types/mpsks/MPSK"
+import { RadiusUserPasswords } from "@yonagi/common/types/users/RadiusUser"
 import { mapValidationLeftError } from "@yonagi/common/utils/Either"
 import { getOrThrow, tryCatchF } from "@yonagi/common/utils/TaskEither"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -28,13 +28,19 @@ import {
     RlmRestMacAuthResponse,
     RlmRestMacAuthResponseType,
 } from "../rlm_rest/types/macAuth"
-import { AbstractMPSKStorage } from "../storages"
+import {
+    RlmRestPasswordAuthRequestType,
+    RlmRestPasswordAuthResponse,
+    RlmRestPasswordAuthResponseType,
+} from "../rlm_rest/types/passwordAuth"
+import { AbstractMPSKStorage, AbstractRadiusUserPasswordStorage } from "../storages"
 
 @Controller("/api/v1/rlm_rest")
 export class RlmRestController {
     constructor(
-        @Inject(forwardRef(() => AbstractMPSKStorage)) private readonly mpskStorage: AbstractMPSKStorage,
-        @Inject(forwardRef(() => DynamicClientResolver)) private readonly clientResolver: DynamicClientResolver,
+        @Inject(AbstractMPSKStorage) private readonly mpskStorage: AbstractMPSKStorage,
+        @Inject(DynamicClientResolver) private readonly clientResolver: DynamicClientResolver,
+        @Inject(AbstractRadiusUserPasswordStorage) private readonly passwordStorage: AbstractRadiusUserPasswordStorage,
     ) {}
 
     @Post("/mac/authorize")
@@ -58,7 +64,7 @@ export class RlmRestController {
     @Post("/clients/authorize")
     @EncodeResponseWith(RlmRestClientAuthResponseType)
     async authorizeClient(@Body() rawBody: unknown): Promise<RlmRestClientAuthResponse> {
-        const o = await F.pipe(
+        return await F.pipe(
             TE.Do,
             TE.bindW("request", () => TE.fromEither(validateRequestParam(rawBody, RlmRestClientAuthRequestType))),
             TE.bindW("client", ({ request: { clientIpAddr } }) =>
@@ -83,6 +89,29 @@ export class RlmRestController {
             TE.map(({ name, client: { secret } }) => ({ name, secret })),
             getOrThrow(),
         )()
-        return o
+    }
+
+    @Post("/passwords/authorize")
+    @EncodeResponseWith(RlmRestPasswordAuthResponseType)
+    async authorizePassword(@Body() rawBody: unknown): Promise<RlmRestPasswordAuthResponse> {
+        return await F.pipe(
+            TE.fromEither(validateRequestParam(rawBody, RlmRestPasswordAuthRequestType)),
+            tryCatchF(
+                ({ username }) => this.passwordStorage.getByUsername(username),
+                (reason) => new InternalServerErrorException(reason),
+            ),
+            TE.filterOrElseW(
+                (password): password is RadiusUserPasswords => password !== null,
+                () => new NotFoundException("No password found"),
+            ),
+            TE.map(
+                ({ clearText, ntHash, ssha512 }): RlmRestPasswordAuthResponse => ({
+                    cleartext: clearText ?? undefined,
+                    nt: ntHash ?? undefined,
+                    ssha512: ssha512 ?? undefined,
+                }),
+            ),
+            getOrThrow(),
+        )()
     }
 }

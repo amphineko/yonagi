@@ -1,15 +1,28 @@
 import { Inject, Module, OnApplicationBootstrap, OnApplicationShutdown, forwardRef } from "@nestjs/common"
 import { DataSource } from "typeorm"
 
-import { AbstractCertificateStorage, AbstractClientStorage, AbstractMPSKStorage } from "."
+import {
+    AbstractCertificateStorage,
+    AbstractClientStorage,
+    AbstractMPSKStorage,
+    AbstractRadiusUserPasswordStorage,
+    AbstractRadiusUserStorage,
+} from "."
 import { SqlClientStorage } from "./sql/clients"
 import { SqlMPSKStorage } from "./sql/mpsks"
 import { SqliteCertificateStorage } from "./sql/pki"
 import { SqliteDataSource } from "./sql/sqlite"
+import { SqlRadiusUserPasswordStorage, SqlRadiusUserStorage } from "./sql/users"
 import { Config, ConfigModule } from "../config"
 
 @Module({
-    exports: [AbstractCertificateStorage, AbstractClientStorage, AbstractMPSKStorage],
+    exports: [
+        AbstractCertificateStorage,
+        AbstractClientStorage,
+        AbstractMPSKStorage,
+        AbstractRadiusUserPasswordStorage,
+        AbstractRadiusUserStorage,
+    ],
     imports: [ConfigModule],
     providers: [
         {
@@ -28,6 +41,14 @@ import { Config, ConfigModule } from "../config"
         {
             provide: AbstractMPSKStorage,
             useClass: SqlMPSKStorage,
+        },
+        {
+            provide: AbstractRadiusUserPasswordStorage,
+            useClass: SqlRadiusUserPasswordStorage,
+        },
+        {
+            provide: AbstractRadiusUserStorage,
+            useClass: SqlRadiusUserStorage,
         },
     ],
 })
