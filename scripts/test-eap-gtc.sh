@@ -14,4 +14,4 @@ network={
 }
 EOF
 
-eapol_test -c "$config" -s $1
+eapol_test -c "$config" -s "$1"
