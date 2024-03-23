@@ -27,18 +27,18 @@ export async function generateInnerTunnelSite({ pki, raddbPath }: RaddbGenParams
                     type = auth
                     port = 18120
                 }
-                
+
                 authorize {
                     filter_username
                     filter_password
                     preprocess
-                    
+
                     rest_passwords
                     inner-eap {
                         ok = return
                     }
                 }
-                
+
                 authenticate {
                     # EAP-PEAP-GTC
                     Auth-Type PAP {

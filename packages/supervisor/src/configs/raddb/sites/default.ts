@@ -35,13 +35,13 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
                     type = auth
                     port = 1812
                 }
-                
+
                 authorize {
                     filter_username
                     filter_password
                     preprocess
                     rewrite_calling_station_id
-                    
+
                     if (!EAP-Message) {
                         # non-802.1x: mac auth
                         rest_mac_auth
@@ -54,7 +54,7 @@ export async function generateDefaultSite({ pki, raddbPath }: RaddbGenParams): P
                         ${eapAuthorize}
                     }
                 }
-                
+
                 authenticate {
                     ${eapAuthenticate}
                 }
