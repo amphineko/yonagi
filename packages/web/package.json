@@ -10,10 +10,12 @@
         "@mui/material": "^5.15.1",
         "@types/react": "^18.2.45",
         "@types/react-dom": "^18.2.18",
+        "hash-wasm": "^4.11.0",
         "next": "^14.0.4",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "react-query": "^3.39.3"
+        "react-query": "^3.39.3",
+        "swr": "^2.2.5"
     },
     "scripts": {
         "dev": "next dev",

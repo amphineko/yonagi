@@ -1,6 +1,7 @@
 "use client"
 
 import {
+    AccountBox,
     BugReport,
     Error,
     Lock,
@@ -194,6 +195,7 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
             "/clients": { label: "NAS Clients", icon: WifiPassword },
             "/mpsks": { label: "Device MPSKs", icon: Password },
             "/pki": { label: "PKI", icon: Lock },
+            "/users": { label: "Users", icon: AccountBox },
             "/debug": { label: "Debug", icon: BugReport, hidden: true },
         }),
         [],
