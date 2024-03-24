@@ -25,8 +25,11 @@ export async function generateEapModule({ pki, raddbPath }: RaddbGenParams): Pro
     await writeFile(
         configPath,
         dedent(`
-            eap {
-                default_eap_type = tls
+            eap outer-eap {
+                default_eap_type = peap
+                type = peap
+                type = tls
+
                 timer_expire = 60
                 max_sessions = \${max_requests}
 
@@ -56,6 +59,27 @@ export async function generateEapModule({ pki, raddbPath }: RaddbGenParams): Pro
 
                 tls {
                     tls = tls-common
+                }
+
+                peap {
+                    tls = tls-common
+                    default_eap_type = mschapv2
+                    virtual_server = "inner-tunnel"
+                    copy_request_to_tunnel = yes
+                }
+            }
+
+            eap inner-eap {
+                default_eap_type = gtc
+                type = gtc
+                type = mschapv2
+
+                gtc {
+                    auth_type = PAP
+                }
+
+                mschapv2 {
+                    send_error = yes
                 }
             }
         `),

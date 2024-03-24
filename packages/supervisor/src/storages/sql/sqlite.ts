@@ -8,14 +8,16 @@ import { DataSourceOptions } from "typeorm/browser"
 import { entities as ClientEntities } from "./clients"
 import { Initial1700000000001 } from "./migrations/1700000000001-initial"
 import { SqlitePki1700000000002 } from "./migrations/1700000000002-sqlite-pki"
+import { Passwords1700000000003 } from "./migrations/1700000000003-passwords"
 import { entities as MPSKEntities } from "./mpsks"
 import { entities as PkiEntities } from "./pki"
+import { entities as UserEntities } from "./users"
 import { createLogger } from "../../common/logger"
 import { Config } from "../../config"
 
 const logger = createLogger(`${basename(__dirname)}/${basename(__filename)}`)
 
-const entities = [...ClientEntities, ...MPSKEntities, ...PkiEntities]
+const entities = [...ClientEntities, ...MPSKEntities, ...PkiEntities, ...UserEntities]
 
 class PinoTypeormLogger extends AbstractLogger {
     private readonly _logger: pino.Logger
@@ -74,7 +76,7 @@ function createSqliteDataSourceOptions(filePath: string, enableSynchronize: bool
         database: filePath,
         entities,
         logger: new PinoTypeormLogger(),
-        migrations: [Initial1700000000001, SqlitePki1700000000002],
+        migrations: [Initial1700000000001, SqlitePki1700000000002, Passwords1700000000003],
         migrationsRun: true,
         migrationsTableName: "migrations",
         synchronize: enableSynchronize,

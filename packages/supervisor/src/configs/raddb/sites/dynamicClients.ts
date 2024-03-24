@@ -13,11 +13,11 @@ export async function generateDynamicClientSite({ raddbPath }: RaddbGenParams): 
             client dynamic-v4 {
                 ipaddr = 0.0.0.0
                 netmask = 0
-            
+
                 dynamic_clients = dyn_client_server
                 lifetime = 1
             }
-            
+
             server dyn_client_server {
                 authorize {
                     update request {

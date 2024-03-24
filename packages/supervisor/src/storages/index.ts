@@ -4,6 +4,8 @@ import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
 import { CallingStationIdAuthentication } from "@yonagi/common/types/mpsks/MPSK"
 import { CertificateMetadata } from "@yonagi/common/types/pki/CertificateMetadata"
 import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
+import { RadiusUser, RadiusUserPasswordStatus, RadiusUserPasswords } from "@yonagi/common/types/users/RadiusUser"
+import { Username } from "@yonagi/common/types/users/Username"
 
 export abstract class AbstractClientStorage {
     abstract all(): Promise<readonly Client[]>
@@ -68,4 +70,22 @@ export abstract class AbstractCertificateStorage {
     abstract getClientCertificateBySerialNumber(serialNumber: SerialNumberString): Promise<GetCertificateResult | null>
     abstract isClientCertificateRevokedBySerialNumber(serialNumber: SerialNumberString): Promise<boolean | null>
     abstract revokeClientCertificate(serialNumber: SerialNumberString): Promise<void>
+}
+
+export abstract class AbstractRadiusUserStorage {
+    abstract all(): Promise<readonly RadiusUser[]>
+
+    abstract createOrUpdate(username: Username, record: Partial<RadiusUser>): Promise<void>
+
+    abstract deleteByUsername(username: Username): Promise<boolean>
+}
+
+export abstract class AbstractRadiusUserPasswordStorage {
+    abstract allStatus(): Promise<readonly RadiusUserPasswordStatus[]>
+
+    abstract createOrUpdate(username: Username, record: Partial<RadiusUserPasswords>): Promise<void>
+
+    abstract deleteByUsername(username: Username): Promise<boolean>
+
+    abstract getByUsername(username: Username): Promise<RadiusUserPasswords | null>
 }

@@ -1,18 +1,14 @@
 import { generateClients } from "./clients"
-import { generateEapModule } from "./modules/eapModule"
-import { generateRestModule } from "./modules/restModule"
+import { generateModules } from "./modules"
 import { patchAuthLogEnable } from "./radiusdConfig"
-import { generateDefaultSite } from "./sites/defaultSite"
-import { generateDynamicClientSite } from "./sites/dynClientSite"
+import { generateSites } from "./sites"
 import { RaddbGenParams } from ".."
 
 export async function generateRaddb(params: RaddbGenParams): Promise<void> {
     await Promise.all([
         generateClients(params),
-        generateDynamicClientSite(params),
-        generateDefaultSite(params),
-        generateEapModule(params),
-        generateRestModule(params),
+        generateModules(params),
+        generateSites(params),
         patchAuthLogEnable(params),
     ])
 }
