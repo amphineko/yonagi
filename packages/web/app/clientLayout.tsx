@@ -4,12 +4,12 @@ import {
     AccountBox,
     BugReport,
     Error,
+    LinkOff,
     Lock,
     Notes,
     Password,
     PowerSettingsNew,
     Refresh,
-    StopCircle,
     SvgIconComponent,
     Traffic,
     WifiPassword,
@@ -31,10 +31,10 @@ import CssBaseline from "@mui/material/CssBaseline"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FC, JSX, PropsWithChildren, ReactNode, useCallback, useEffect, useMemo, useState } from "react"
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "react-query"
+import { FC, JSX, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from "react"
+import { QueryClient, QueryClientProvider } from "react-query"
 
-import { getStatus, reloadRadiusd, restartRadiusd } from "./actions"
+import { useRadiusdStatus, useReloadRadiusd, useRestartRadiusd } from "./queries"
 import { NotificationList, NotificationProvider } from "../lib/notifications"
 
 const queryClient = new QueryClient()
@@ -54,29 +54,15 @@ function humanize(seconds: number) {
 }
 
 function RadiusdMenu(): JSX.Element {
-    const queryClient = useQueryClient()
-    const onSuccess = useCallback(async () => {
-        await queryClient.invalidateQueries(["index", "radiusd", "status"])
-    }, [queryClient])
-
-    const { mutate: mutateReload } = useMutation({
-        mutationFn: reloadRadiusd,
-        mutationKey: ["index", "radiusd", "reload"],
-        onSuccess,
-    })
-
-    const { mutate: mutateRestart } = useMutation({
-        mutationFn: restartRadiusd,
-        mutationKey: ["index", "radiusd", "restart"],
-        onSuccess,
-    })
+    const { trigger: reload } = useReloadRadiusd()
+    const { trigger: restart } = useRestartRadiusd()
 
     return (
         <Box>
             <IconButton
                 color="inherit"
                 onClick={() => {
-                    mutateReload()
+                    void reload()
                 }}
             >
                 <Tooltip title="Reload">
@@ -87,7 +73,7 @@ function RadiusdMenu(): JSX.Element {
             <IconButton
                 color="inherit"
                 onClick={() => {
-                    mutateRestart()
+                    void restart()
                 }}
             >
                 <Tooltip title="Restart">
@@ -99,16 +85,12 @@ function RadiusdMenu(): JSX.Element {
 }
 
 function StatusChip(): JSX.Element {
-    const { data } = useQuery({
-        queryFn: async () => await getStatus(),
-        queryKey: ["index", "radiusd", "status"],
-        refetchInterval: 60 * 1000,
-    })
+    const { data: status } = useRadiusdStatus()
 
-    const isRunning = data?.lastExitCode === undefined
+    const isRunning = status?.lastExitCode === undefined
 
     const [now, setNow] = useState(() => Date.now())
-    const uptime = Math.floor(((data?.lastRestartedAt?.getTime() ?? now) - now) / 1000)
+    const uptime = Math.floor(((status?.lastRestartedAt?.getTime() ?? now) - now) / 1000)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -120,16 +102,16 @@ function StatusChip(): JSX.Element {
         }
     }, [])
 
-    return isRunning ? (
-        <Tooltip title={`Radiusd is up since ${data?.lastRestartedAt?.toLocaleString()}`}>
+    return status === undefined ? (
+        <Tooltip title={`Cannot fetch server status`}>
+            <Chip color="error" icon={<LinkOff />} label="Unknown" variant="outlined" />
+        </Tooltip>
+    ) : isRunning ? (
+        <Tooltip title={`Radiusd is up since ${status.lastRestartedAt?.toLocaleString()}`}>
             <Chip color="success" icon={<Traffic />} label={humanize(uptime)} variant="outlined"></Chip>
         </Tooltip>
-    ) : data.lastExitCode === 0 ? (
-        <Tooltip title={`Exited with code ${data.lastExitCode}`}>
-            <Chip color="warning" icon={<StopCircle />} label="Stopped" variant="outlined" />
-        </Tooltip>
     ) : (
-        <Tooltip title={`Exited with code ${data.lastExitCode}`}>
+        <Tooltip title={`Exited with code ${status.lastExitCode}`}>
             <Chip color="error" icon={<Error />} label="Failed" variant="outlined" />
         </Tooltip>
     )
