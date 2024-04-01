@@ -32,12 +32,9 @@ import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { FC, JSX, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from "react"
-import { QueryClient, QueryClientProvider } from "react-query"
 
 import { useRadiusdStatus, useReloadRadiusd, useRestartRadiusd } from "./queries"
 import { NotificationList, NotificationProvider } from "../lib/notifications"
-
-const queryClient = new QueryClient()
 
 const humanizer = new Intl.RelativeTimeFormat("en", { numeric: "always", style: "short" })
 
@@ -207,7 +204,6 @@ export function RootClientLayout({ children }: { children: React.ReactNode }): J
         <ProviderReducer
             providers={[
                 ({ children }) => <NotificationProvider>{children}</NotificationProvider>,
-                ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
                 ({ children }) => <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>,
             ]}
         >

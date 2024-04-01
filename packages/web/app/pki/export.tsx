@@ -13,11 +13,19 @@ import {
 } from "@mui/material"
 import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
 import { FormEvent, useState } from "react"
-import { useQuery } from "react-query"
+import useSWRMutation from "swr/mutation"
 
-import { exportClientCertificateP12 } from "./actions"
+import { exportCertificateAuthorityPem, exportClientCertificateP12 } from "./actions"
 import { base64ToBlob, downloadBlob } from "../../lib/client"
 import { useNotifications } from "../../lib/notifications"
+
+export function useExportCertificateAuthorityPem(filename: string) {
+    return useSWRMutation(["pki"], async () => {
+        const pem = await exportCertificateAuthorityPem()
+        const blob = new Blob([pem], { type: "application/x-pem-file" })
+        downloadBlob(blob, `${filename}.crt`)
+    })
+}
 
 export function ExportPkcs12Dialog({
     onClose,
@@ -30,31 +38,24 @@ export function ExportPkcs12Dialog({
 }): JSX.Element {
     const [password, setPassword] = useState("")
 
-    const { isLoading, refetch } = useQuery<unknown, unknown, { password: string }>({
-        enabled: false,
-        queryFn: async () => {
+    const { notifyError, notifySuccess } = useNotifications()
+    const { trigger, isMutating } = useSWRMutation(
+        ["pki"],
+        async (_, { arg: password }: { arg: string }) => {
             const base64 = await exportClientCertificateP12(serialNumber, password)
             const blob = base64ToBlob(base64, "application/x-pkcs12")
             downloadBlob(blob, `${serialNumber}.p12`)
         },
-        onError: (error) => {
-            notifyError("Failed to export PKCS#12", String(error))
-        },
-        queryKey: ["pki", "download", serialNumber],
-        retry: false,
-    })
-
-    const handleSubmit = () => {
-        refetch()
-            .then(() => {
+        {
+            onError: (error) => {
+                notifyError("Failed to export PKCS#12", String(error))
+            },
+            onSuccess: () => {
+                notifySuccess("PKCS#12 exported")
                 onClose()
-            })
-            .catch((error) => {
-                notifyError("Failed to export as PKCS#12", String(error))
-            })
-    }
-
-    const { notifyError } = useNotifications()
+            },
+        },
+    )
 
     return (
         <Dialog
@@ -66,7 +67,7 @@ export function ExportPkcs12Dialog({
                 component: "form",
                 onSubmit: (e: FormEvent<HTMLFormElement>) => {
                     e.preventDefault()
-                    handleSubmit()
+                    void trigger(password)
                 },
             }}
         >
@@ -89,11 +90,8 @@ export function ExportPkcs12Dialog({
             </DialogContent>
             <DialogActions>
                 <Button
-                    disabled={isLoading || password.length === 0}
-                    onClick={() => {
-                        handleSubmit()
-                    }}
-                    startIcon={isLoading ? <CircularProgress size="1em" /> : <FileDownload />}
+                    disabled={isMutating || password.length === 0}
+                    startIcon={isMutating ? <CircularProgress size="1em" /> : <FileDownload />}
                     type="submit"
                 >
                     Export
