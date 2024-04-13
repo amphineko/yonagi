@@ -74,3 +74,49 @@ export function ValidatedForm<A>({
         F.pipe(decoder.decode(fields), E.map(submit))
     })
 }
+
+export function CodecTextField<A, IO extends string = string>({
+    codec,
+    focusOnModified,
+    initialValue,
+    label,
+    onChange,
+    textFieldProps,
+}: {
+    codec: t.Decoder<IO, A> & t.Encoder<A, IO>
+    focusOnModified?: boolean
+    initialValue: IO
+    label?: string
+    onChange: (validation: t.Validation<A>) => void
+    textFieldProps?: React.ComponentProps<typeof TextField>
+}): JSX.Element {
+    const [value, setValue] = useState<IO>(initialValue)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleChange = (newValue: IO) => {
+        setValue(newValue)
+
+        const validation = codec.decode(newValue)
+        if (E.isLeft(validation)) {
+            setError(PR.failure(validation.left).join("/"))
+        } else {
+            setError(null)
+        }
+
+        onChange(validation)
+    }
+
+    return (
+        <TextField
+            label={label}
+            error={error !== null}
+            color={error !== null ? "error" : "success"}
+            focused={(focusOnModified ?? true) && value !== initialValue}
+            {...textFieldProps}
+            value={value}
+            onChange={(e) => {
+                handleChange(e.currentTarget.value as IO)
+            }}
+        />
+    )
+}

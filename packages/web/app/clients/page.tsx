@@ -1,7 +1,8 @@
 "use client"
 
-import { Add, Delete, Save } from "@mui/icons-material"
+import { Add, Delete, Download, Save, Upload } from "@mui/icons-material"
 import {
+    Button,
     IconButton,
     Table,
     TableBody,
@@ -10,236 +11,197 @@ import {
     TableFooter,
     TableHead,
     TableRow,
+    TextField,
 } from "@mui/material"
 import { ListClientsResponseType } from "@yonagi/common/api/clients"
-import { Client, ClientType } from "@yonagi/common/types/Client"
+import { Client } from "@yonagi/common/types/Client"
+import { IpNetwork } from "@yonagi/common/types/IpNetwork"
 import { IpNetworkFromStringType } from "@yonagi/common/types/IpNetworkFromString"
 import { Name, NameType } from "@yonagi/common/types/Name"
-import { SecretType } from "@yonagi/common/types/Secret"
-import { getOrThrow } from "@yonagi/common/utils/TaskEither"
+import { Secret, SecretType } from "@yonagi/common/types/Secret"
 import * as E from "fp-ts/lib/Either"
-import * as TE from "fp-ts/lib/TaskEither"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
-import { useMemo, useState } from "react"
-import { useMutation, useQuery } from "react-query"
+import React, { useEffect, useMemo, useState } from "react"
 
-import { bulkCreateOrUpdate, createOrUpdateByName, deleteByName, getAllClients } from "./actions"
-import { useQueryHelpers } from "../../lib/client"
-import { mapLeftValidationError } from "../../lib/fp"
+import { useCreateClient, useDeleteClient, useImportClients, useRadiusClients, useUpdateClient } from "./queries"
+import { useNonce } from "../../lib/client"
+import { CodecTextField } from "../../lib/forms"
 import { useNotifications } from "../../lib/notifications"
-import { ValidatedTableCell } from "../../lib/tables"
-import { ExportButton, ImportButton } from "../../lib/upload"
+import { useExportDownload, useImportUpload } from "../../lib/upload"
 
-const CLIENT_QUERY_KEY = ["clients"]
-
-function useBulkCreateOrUpdate() {
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-    const { notifyError, notifySuccess } = useNotifications()
-    return useMutation({
-        mutationFn: async (clients: readonly Client[]) => {
-            await bulkCreateOrUpdate(clients)
-        },
-        mutationKey: ["clients", "bulk-update"],
-        onError: (error) => {
-            notifyError(`Failed importing clients`, String(error))
-        },
-        onSuccess: (_, clients) => {
-            notifySuccess(`Imported ${clients.length} clients`)
-        },
-        onSettled: invalidate,
-    })
-}
-
-function useCreateOrUpdateClient({ name, onSuccess }: { name: string; onSuccess: () => void }) {
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-    const { notifyError, notifySuccess } = useNotifications()
-    return useMutation({
-        mutationFn: async (validation: t.Validation<Client>) => {
-            await F.pipe(
-                validation,
-                mapLeftValidationError((error) => new Error(`Cannot validate input: ${error}`)),
-                TE.fromEither,
-                TE.flatMap((client) =>
-                    TE.tryCatch(
-                        () => createOrUpdateByName(name, client),
-                        (error) => new Error(String(error)),
-                    ),
-                ),
-                getOrThrow(),
-            )()
-        },
-        mutationKey: ["clients", "update", name],
-        onError: (error) => {
-            notifyError(`Failed updating client ${name}`, String(error))
-        },
-        onSuccess: () => {
-            notifySuccess(`Updated client ${name}`)
-            setTimeout(onSuccess, 0)
-        },
-        onSettled: invalidate,
-    })
-}
-
-function useDeleteClient(name: string) {
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-    const { notifyError, notifySuccess } = useNotifications()
-    return useMutation<unknown, unknown, string>({
-        mutationFn: (name) => deleteByName(name),
-        mutationKey: ["clients", "delete", name],
-        onError: (error, name) => {
-            notifyError(`Failed deleting client ${name}`, String(error))
-        },
-        onSuccess: (_, name) => {
-            notifySuccess(`Deleted client ${name}`, "")
-        },
-        onSettled: invalidate,
-    })
-}
-
-function useListClients() {
-    const { invalidate } = useQueryHelpers(CLIENT_QUERY_KEY)
-    const { notifyError } = useNotifications()
-    return useQuery({
-        queryFn: async (): Promise<readonly Client[]> => await getAllClients(),
-        queryKey: CLIENT_QUERY_KEY,
-        onError: (error) => {
-            notifyError("Failed reading clients", String(error))
-        },
-        onSettled: () => {
-            void invalidate()
-        },
-    })
+interface ClientTableRowValidations {
+    name: t.Validation<Name>
+    ipaddr: t.Validation<IpNetwork>
+    secret: t.Validation<Secret>
 }
 
 function ClientTableRow({
-    isCreateOrUpdate,
-    name: serverName,
-    serverValue,
+    actions,
+    serverValues,
+    onChange,
+    onKeyDown,
 }: {
-    isCreateOrUpdate: "create" | "update"
-    key: string
-    name?: Name
-    serverValue: Partial<Client>
+    actions: React.ReactNode
+    key?: React.Key
+    serverValues?: Client
+    onChange: (validations: ClientTableRowValidations) => void
+    onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void
 }): JSX.Element {
-    const [name, setName] = useState<string>(serverName ?? "")
-    const isNameModified = useMemo(() => name !== (serverName ?? ""), [serverName, name])
-
-    const [ipaddr, setIpaddr] = useState<string>(
-        serverValue.ipaddr ? IpNetworkFromStringType.encode(serverValue.ipaddr) : "",
+    /**
+     * states of **latest validations** of each field
+     * new values are updated to the input fields, and only their validations will be propagated here
+     */
+    const [name, setName] = useState(serverValues ? t.success(serverValues.name) : NameType.decode(""))
+    const [ipaddr, setIpaddr] = useState(
+        serverValues ? t.success(serverValues.ipaddr) : IpNetworkFromStringType.decode(""),
     )
-    const isIpaddrModified = useMemo(
-        () =>
-            ipaddr !==
-            (serverValue.ipaddr
-                ? // check against initial value if present (for updating)
-                  IpNetworkFromStringType.encode(serverValue.ipaddr)
-                : // otherwise check against empty string (for creating)
-                  ""),
-        [serverValue.ipaddr, ipaddr],
-    )
+    const [secret, setSecret] = useState(serverValues ? t.success(serverValues.secret) : SecretType.decode(""))
 
-    const [secret, setSecret] = useState<string>(serverValue.secret ?? "")
-    const isSecretModified = useMemo(() => secret !== (serverValue.secret ?? ""), [serverValue.secret, secret])
+    const textFieldProps: React.ComponentProps<typeof TextField> = {
+        variant: "standard",
+    }
 
-    const formValidation = useMemo<t.Validation<Client>>(
-        () =>
-            F.pipe(
-                IpNetworkFromStringType.decode(ipaddr),
-                E.flatMap((ipaddr) => ClientType.decode({ name, ipaddr, secret })),
-            ),
-        [ipaddr, name, secret],
-    )
-
-    const { mutate: submitUpdate } = useCreateOrUpdateClient({
-        name,
-        onSuccess: () => {
-            if (isCreateOrUpdate === "create") {
-                setName(serverName ?? "")
-                setIpaddr("")
-                setSecret("")
-            }
-        },
-    })
-    const { mutate: submitDelete } = useDeleteClient(name)
+    useEffect(() => {
+        // propagates the latest validations to the parent component
+        onChange({ name, ipaddr, secret })
+    }, [name, ipaddr, secret, onChange])
 
     return (
-        <TableRow
-            onKeyDown={(event) => {
-                if (event.key === "Enter") submitUpdate(formValidation)
-            }}
-        >
-            <ValidatedTableCell
-                disabled={isCreateOrUpdate === "update"}
-                isModified={isNameModified}
-                onChange={setName}
-                validate={(value) => NameType.decode(value)}
-                value={name}
-            />
-            <ValidatedTableCell
-                isModified={isIpaddrModified}
-                onChange={setIpaddr}
-                validate={(value) => IpNetworkFromStringType.decode(value)}
-                value={ipaddr}
-            />
-            <ValidatedTableCell
-                isModified={isSecretModified}
-                onChange={setSecret}
-                validate={(value) => SecretType.decode(value)}
-                value={secret}
-            />
+        <TableRow onKeyDown={onKeyDown}>
+            <TableCell>
+                <CodecTextField
+                    codec={NameType}
+                    initialValue={serverValues?.name ?? ""}
+                    onChange={setName}
+                    textFieldProps={textFieldProps}
+                />
+            </TableCell>
+            <TableCell>
+                <CodecTextField
+                    codec={IpNetworkFromStringType}
+                    initialValue={serverValues ? IpNetworkFromStringType.encode(serverValues.ipaddr) : ""}
+                    onChange={setIpaddr}
+                    textFieldProps={textFieldProps}
+                />
+            </TableCell>
+            <TableCell>
+                <CodecTextField
+                    codec={SecretType}
+                    initialValue={serverValues?.secret ?? ""}
+                    onChange={setSecret}
+                    textFieldProps={textFieldProps}
+                />
+            </TableCell>
+            <TableCell>{actions}</TableCell>
+        </TableRow>
+    )
+}
 
-            {isCreateOrUpdate === "create" && (
-                <TableCell>
-                    <IconButton
-                        aria-label="Create"
-                        disabled={E.isLeft(formValidation)}
-                        onClick={() => {
-                            submitUpdate(formValidation)
-                        }}
-                    >
+function useClientValidatedSubmit(submit: (client: Client) => void) {
+    const [validations, setValidations] = useState<ClientTableRowValidations | null>(null)
+
+    const handleSubmit = () => {
+        if (validations === null) {
+            return
+        }
+
+        F.pipe(
+            E.Do,
+            E.bind("name", () => validations.name),
+            E.bind("ipaddr", () => validations.ipaddr),
+            E.bind("secret", () => validations.secret),
+            E.map((client) => {
+                submit(client)
+            }),
+        )
+    }
+
+    return { handleSubmit, setValidations }
+}
+
+function CreateClientTableRow(): JSX.Element {
+    const { trigger: createClient } = useCreateClient()
+    const { handleSubmit, setValidations } = useClientValidatedSubmit((client) => {
+        void createClient(client)
+    })
+
+    return (
+        <ClientTableRow
+            actions={
+                <>
+                    <IconButton aria-label="Create" onClick={handleSubmit}>
                         <Add />
                     </IconButton>
-                </TableCell>
-            )}
+                </>
+            }
+            onChange={setValidations}
+            onKeyDown={(e) => {
+                e.key === "Enter" && handleSubmit()
+            }}
+        />
+    )
+}
 
-            {isCreateOrUpdate === "update" && (
-                <TableCell>
-                    <IconButton
-                        aria-label="Update"
-                        disabled={E.isLeft(formValidation)}
-                        onClick={() => {
-                            submitUpdate(formValidation)
-                        }}
-                    >
+function UpdateClientTableRow({ client }: { client: Client; key: React.Key }): JSX.Element {
+    const { trigger: updateClient } = useUpdateClient()
+    const { trigger: deleteClient } = useDeleteClient()
+    const { handleSubmit, setValidations } = useClientValidatedSubmit((client) => {
+        void updateClient(client)
+    })
+
+    return (
+        <ClientTableRow
+            actions={
+                <>
+                    <IconButton aria-label="Update" onClick={handleSubmit}>
                         <Save />
                     </IconButton>
                     <IconButton
                         aria-label="Delete"
                         onClick={() => {
-                            submitDelete(name)
+                            void deleteClient(client.name)
                         }}
                     >
                         <Delete />
                     </IconButton>
-                </TableCell>
-            )}
-        </TableRow>
+                </>
+            }
+            onChange={setValidations}
+            onKeyDown={(e) => {
+                e.key === "Enter" && handleSubmit()
+            }}
+            serverValues={client}
+        />
     )
 }
 
 function ClientTable(): JSX.Element {
-    const { data: clients } = useListClients()
-    const { mutate: importClients } = useBulkCreateOrUpdate()
+    const { data: clients } = useRadiusClients()
+    const { trigger: importClients } = useImportClients()
+
+    const { notifyError } = useNotifications()
+
+    const { download } = useExportDownload("clients.json", ListClientsResponseType)
+    const { upload } = useImportUpload(
+        ListClientsResponseType,
+        (clients) => void importClients(clients),
+        (error) => {
+            notifyError(`Failed on upload`, String(error))
+        },
+    )
 
     const tableItems = useMemo(() => {
         if (clients === undefined) {
             return []
         }
-        return clients.map((client) => (
-            <ClientTableRow serverValue={client} isCreateOrUpdate="update" key={client.name} name={client.name} />
-        ))
+        return clients.map((client) => <UpdateClientTableRow client={client} key={client.name} />)
     }, [clients])
+
+    const { nonce: createRowKey, increaseNonce: increaseCreateRowKey } = useNonce()
+    useEffect(() => {
+        increaseCreateRowKey()
+    }, [clients, increaseCreateRowKey])
 
     return (
         <TableContainer>
@@ -254,22 +216,27 @@ function ClientTable(): JSX.Element {
                 </TableHead>
                 <TableBody>
                     {tableItems}
-                    <ClientTableRow serverValue={{}} isCreateOrUpdate="create" key={`create`} />
+                    <CreateClientTableRow key={createRowKey} />
                 </TableBody>
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={4}>
-                            <ExportButton
-                                data={clients ?? []}
-                                encoder={ListClientsResponseType}
-                                filename="clients.json"
-                            />
-                            <ImportButton
-                                decoder={ListClientsResponseType}
-                                onImport={(clients) => {
-                                    importClients(clients)
+                            <Button
+                                aria-label="Export all clients"
+                                startIcon={<Download />}
+                                onClick={() => {
+                                    if (clients !== undefined && clients.length > 0) {
+                                        download(clients)
+                                    } else {
+                                        notifyError("No clients to export")
+                                    }
                                 }}
-                            />
+                            >
+                                Export
+                            </Button>
+                            <Button aria-label="Import clients" startIcon={<Upload />} onClick={upload}>
+                                Import
+                            </Button>
                         </TableCell>
                     </TableRow>
                 </TableFooter>

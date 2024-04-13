@@ -1,7 +1,7 @@
 "use client"
 
 import styled from "@emotion/styled"
-import { useQuery } from "react-query"
+import useSWR from "swr"
 
 import { getRecentLogs } from "../actions"
 
@@ -11,10 +11,7 @@ const LogLine = styled.span`
 `
 
 export default function RadiusdLogPage() {
-    const { data: logs } = useQuery<readonly string[]>({
-        queryKey: ["radiusd", "logs"],
-        queryFn: async () => await getRecentLogs(),
-    })
+    const { data: logs } = useSWR<readonly string[]>(["radiusd"], async () => await getRecentLogs())
 
     return <div>{logs?.map((log, idx) => <LogLine key={idx}>{log}</LogLine>)}</div>
 }

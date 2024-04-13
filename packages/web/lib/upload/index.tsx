@@ -1,7 +1,5 @@
 "use client"
 
-import { Download, Upload } from "@mui/icons-material"
-import { Button } from "@mui/material"
 import { getOrThrow } from "@yonagi/common/utils/TaskEither"
 import * as E from "fp-ts/lib/Either"
 import * as TE from "fp-ts/lib/TaskEither"
@@ -10,44 +8,33 @@ import * as t from "io-ts"
 import * as PR from "io-ts/lib/PathReporter"
 import { useCallback } from "react"
 
-export function ExportButton<A, O>({
-    data,
-    encoder,
-    filename,
-}: {
-    data: A
-    encoder: t.Encoder<A, O>
-    filename: string
-}) {
-    const onClick = useCallback(() => {
-        F.pipe(
-            encoder.encode(data),
-            (encoded) => JSON.stringify(encoded),
-            (json) => {
-                const a = document.createElement("a")
-                a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
-                a.download = filename
-                a.click()
-                URL.revokeObjectURL(a.href)
-            },
-        )
-    }, [data, encoder, filename])
-
-    return (
-        <Button aria-label="Export" startIcon={<Download />} onClick={onClick}>
-            Export
-        </Button>
+export function useExportDownload<A, O>(filename: string, encoder: t.Encoder<A, O>) {
+    const download = useCallback(
+        (data: A) => {
+            F.pipe(
+                encoder.encode(data),
+                (encoded) => JSON.stringify(encoded),
+                (json) => {
+                    const a = document.createElement("a")
+                    a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+                    a.download = filename
+                    a.click()
+                    URL.revokeObjectURL(a.href)
+                },
+            )
+        },
+        [encoder, filename],
     )
+
+    return { download }
 }
 
-export function ImportButton<A>({
-    decoder,
-    onImport,
-}: {
-    decoder: t.Decoder<unknown, A>
-    onImport: (data: A) => void
-}) {
-    const onClick = useCallback(() => {
+export function useImportUpload<A>(
+    decoder: t.Decoder<unknown, A>,
+    onImport: (data: A) => void,
+    onError: (error: Error) => void,
+) {
+    const upload = useCallback(() => {
         F.pipe(
             // upload file
             TE.tryCatch(() => {
@@ -66,8 +53,10 @@ export function ImportButton<A>({
                     }
                 })
             }, E.toError),
+
             // read and parse json
             TE.flatMap((file) => TE.tryCatch(async () => JSON.parse(await file.text()) as unknown, E.toError)),
+
             // decode
             TE.flatMap(
                 F.flow(
@@ -76,17 +65,11 @@ export function ImportButton<A>({
                     TE.fromEither,
                 ),
             ),
-            TE.map(onImport),
             getOrThrow(),
-        )().catch((e) => {
-            console.error(e)
-            alert(e)
-        })
-    }, [decoder, onImport])
+        )()
+            .then(onImport)
+            .catch(onError)
+    }, [decoder, onError, onImport])
 
-    return (
-        <Button aria-label="Import" startIcon={<Upload />} onClick={onClick}>
-            Import
-        </Button>
-    )
+    return { upload }
 }

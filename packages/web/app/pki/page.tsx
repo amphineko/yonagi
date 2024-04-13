@@ -7,7 +7,6 @@ import {
     AccordionSummary,
     Box,
     Button,
-    CircularProgress,
     Divider,
     Grid,
     LinearProgress,
@@ -16,35 +15,24 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material"
-import {
-    CertificateSummary,
-    CreateCertificateRequest,
-    CreateCertificateRequestType,
-    GetPkiSummaryResponse,
-} from "@yonagi/common/api/pki"
-import { PositiveIntegerFromString } from "@yonagi/common/types/Integers"
-import { NonEmptyStringType } from "@yonagi/common/types/StringWithLengthRange"
+import { CertificateSummary } from "@yonagi/common/api/pki"
 import { RelativeDistinguishedNames } from "@yonagi/common/types/pki/RelativeDistinguishedNames"
 import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
-import { useState } from "react"
-import { useMutation, useQuery } from "react-query"
+import { useEffect, useState } from "react"
 
 import {
-    createCertificateAuthority,
-    createClientCertificate,
-    createServerCertificate,
-    deleteCertificateAuthority,
-    deleteClientCertificate,
-    deleteServerCertificate,
-    exportCertificateAuthorityPem,
-    getPkiSummary,
-} from "./actions"
-import { useExportPkcs12Dialog } from "./exportDialog"
-import { downloadBlob, useNonce, useQueryHelpers } from "../../lib/client"
-import { ValidatedForm, ValidatedTextField } from "../../lib/forms"
-import { useNotifications } from "../../lib/notifications"
-
-const PKI_QUERY_KEY = ["pki", "summary"]
+    CreateCertificateAuthorityAccordion,
+    CreateClientCertificateAccordion,
+    CreateServerCertificateAccordion,
+} from "./create"
+import { useExportCertificateAuthorityPem, useExportPkcs12Dialog } from "./export"
+import {
+    useDeleteCertificateAuthority,
+    useDeleteClientCertificate,
+    useDeleteServerCertificate,
+    usePkiSummary,
+} from "./queries"
+import { useNonce } from "../../lib/client"
 
 function DateTime({ children, type }: { children: number; type: "notAfter" | "notBefore" }) {
     const parsed = new Date(children)
@@ -90,44 +78,59 @@ function CertificateDetailCell({ children, label }: { children: React.ReactNode;
     )
 }
 
+function ConfirmDeleteButton({ onClick }: { onClick: () => void }) {
+    const [anchor, setAnchor] = useState<HTMLElement | null>(null)
+
+    return (
+        <>
+            <Button
+                color="error"
+                onClick={(e) => {
+                    setAnchor(e.currentTarget)
+                }}
+                startIcon={<DeleteForever />}
+                variant="contained"
+            >
+                Delete
+            </Button>
+            <Popover
+                anchorEl={anchor}
+                anchorOrigin={{
+                    horizontal: "left",
+                    vertical: "center",
+                }}
+                onClose={() => {
+                    setAnchor(null)
+                }}
+                open={!!anchor}
+                transformOrigin={{
+                    horizontal: "left",
+                    vertical: "center",
+                }}
+            >
+                <Button color="error" onClick={onClick} startIcon={<Delete />} variant="contained">
+                    Confirm Delete
+                </Button>
+            </Popover>
+        </>
+    )
+}
+
 function CertificateDisplayAccordionDetails({
     canExportCaPem,
     canExportP12,
     cert,
-    delete: submitDelete,
+    onDelete,
 }: {
     canExportCaPem?: boolean
     canExportP12?: boolean
     cert: CertificateSummary
-    delete: (serial: SerialNumberString) => Promise<unknown>
+    onDelete: (serial: SerialNumberString) => void
 }) {
-    const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
-    const { isLoading: isDeleting, mutate: mutateDelete } = useMutation({
-        mutationFn: async () => await submitDelete(cert.serialNumber),
-        mutationKey: ["pki", "delete", cert.serialNumber],
-        onSettled: invalidate,
-    })
-    const { notifyError } = useNotifications()
-
-    const { isLoading: isExportingCaPem, refetch: refetchCaPem } = useQuery({
-        enabled: false,
-        queryFn: async () => {
-            const pem = await exportCertificateAuthorityPem()
-            const blob = new Blob([pem], { type: "application/x-pem-file" })
-            downloadBlob(blob, `${cert.serialNumber}.crt`)
-        },
-        onError: (error) => {
-            notifyError("Failed to download certificate", String(error))
-        },
-        queryKey: ["pki", "download", cert.serialNumber],
-        retry: false,
-    })
-
+    const { trigger: exportCaPem } = useExportCertificateAuthorityPem(`${cert.serialNumber}.crt`)
     const { dialog: exportPkcs12Dialog, open: openExportPkcs12Dialog } = useExportPkcs12Dialog({
         serialNumber: cert.serialNumber,
     })
-
-    const [deletePopoverAnchor, setDeletePopoverAnchor] = useState<HTMLElement | null>(null)
 
     return (
         <AccordionDetails>
@@ -150,27 +153,16 @@ function CertificateDisplayAccordionDetails({
                 </Grid>
                 <Divider />
                 <Stack direction="row" spacing={1} alignItems="center">
-                    <Button
-                        color="error"
-                        disabled={deletePopoverAnchor !== null || isDeleting}
-                        onClick={(e) => {
-                            setDeletePopoverAnchor(e.currentTarget)
+                    <ConfirmDeleteButton
+                        onClick={() => {
+                            onDelete(cert.serialNumber)
                         }}
-                        startIcon={isDeleting ? <CircularProgress /> : <DeleteForever />}
-                        variant="contained"
-                    >
-                        Delete
-                    </Button>
+                    />
                     {canExportCaPem && (
                         <Button
                             color="primary"
-                            disabled={isExportingCaPem}
-                            onClick={() => {
-                                refetchCaPem().catch(() => {
-                                    /* */
-                                })
-                            }}
-                            startIcon={isExportingCaPem ? <CircularProgress size="1em" /> : <Download />}
+                            onClick={() => void exportCaPem()}
+                            startIcon={<Download />}
                             variant="contained"
                         >
                             Certificate
@@ -190,160 +182,55 @@ function CertificateDisplayAccordionDetails({
                     )}
                 </Stack>
             </Stack>
-            <Popover
-                anchorEl={deletePopoverAnchor}
-                anchorOrigin={{
-                    horizontal: "left",
-                    vertical: "center",
-                }}
-                elevation={2}
-                onClose={() => {
-                    setDeletePopoverAnchor(null)
-                }}
-                open={deletePopoverAnchor !== null}
-                transformOrigin={{
-                    horizontal: "left",
-                    vertical: "center",
-                }}
-            >
-                <Button
-                    color="error"
-                    onClick={() => {
-                        setDeletePopoverAnchor(null)
-                        mutateDelete()
-                    }}
-                    startIcon={<Delete />}
-                    variant="contained"
-                >
-                    Confirm Delete
-                </Button>
-            </Popover>
             {canExportP12 && exportPkcs12Dialog}
         </AccordionDetails>
     )
 }
 
-function CertificateCreateAccordionDetails({
-    create: submitCreate,
+function CertificateAccordion({
+    canExportCaPem,
+    canExportP12,
+    cert,
+    defaultExpanded,
+    onDelete,
+    title,
 }: {
-    create: (form: CreateCertificateRequest) => Promise<unknown>
+    canExportCaPem?: boolean
+    canExportP12?: boolean
+    cert?: CertificateSummary
+    defaultExpanded?: boolean
+    onDelete: (serial: SerialNumberString) => unknown
+    key?: string
+    title: string
 }) {
-    const { invalidate } = useQueryHelpers(PKI_QUERY_KEY)
-    const { isLoading: isCreating, mutate: mutateCreate } = useMutation<unknown, unknown, CreateCertificateRequest>({
-        mutationFn: async (form) => await submitCreate(form),
-        mutationKey: ["pki", "create"],
-        onSettled: invalidate,
-    })
     return (
-        <AccordionDetails>
-            <ValidatedForm
-                decoder={CreateCertificateRequestType}
-                submit={(form) => {
-                    mutateCreate(form)
-                }}
-            >
-                {(update, trySubmit) => (
-                    <Stack direction="column" gap={2}>
-                        <ValidatedTextField
-                            decoder={NonEmptyStringType}
-                            initialValue=""
-                            label="Common Name"
-                            onChange={(commonName) => {
-                                update((current) => ({
-                                    ...current,
-                                    subject: { ...current.subject, commonName },
-                                }))
-                            }}
-                        />
-                        <ValidatedTextField
-                            decoder={NonEmptyStringType}
-                            initialValue=""
-                            label="Organization Name"
-                            onChange={(organizationName) => {
-                                update((current) => ({
-                                    ...current,
-                                    subject: { ...current.subject, organizationName },
-                                }))
-                            }}
-                        />
-                        <ValidatedTextField
-                            decoder={PositiveIntegerFromString}
-                            initialValue=""
-                            label="Valid Days"
-                            onChange={(validity) => {
-                                update((current) => ({ ...current, validity }))
-                            }}
-                        />
-                        <Box>
-                            <Button
-                                color="success"
-                                disabled={isCreating}
-                                onClick={() => {
-                                    trySubmit()
-                                }}
-                                startIcon={isCreating ? <CircularProgress /> : <DeleteForever />}
-                                variant="contained"
-                            >
-                                Create
-                            </Button>
-                        </Box>
-                    </Stack>
-                )}
-            </ValidatedForm>
-        </AccordionDetails>
-    )
-}
-
-function CertificateAccordion(
-    props: {
-        create?: (form: CreateCertificateRequest) => Promise<unknown>
-        defaultExpanded?: boolean
-        isLoading: boolean
-        key?: string
-        title: string
-    } & (
-        | {
-              canExportCaPem?: boolean
-              canExportP12?: boolean
-              cert?: CertificateSummary
-              delete: (serial: SerialNumberString) => Promise<unknown>
-          }
-        | {
-              cert?: never
-          }
-    ),
-) {
-    const { defaultExpanded, isLoading, title } = props
-    return (
-        <Accordion defaultExpanded={defaultExpanded} disabled={isLoading}>
+        <Accordion defaultExpanded={defaultExpanded} disabled={cert === undefined}>
             <AccordionSummary expandIcon={<ExpandMore />}>
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Typography aria-label="Certificate Type">{title}</Typography>
-                    {props.cert && (
+                    {cert && (
                         <Typography
-                            aria-label="Certificate Subject Common Name"
+                            aria-label="Common Name of Certificate Subject"
                             sx={{ color: "text.secondary", flexGrow: 2 }}
                         >
-                            {props.cert.subject.commonName}
+                            {cert.subject.commonName}
                         </Typography>
                     )}
                 </Stack>
             </AccordionSummary>
-            {props.isLoading ? (
+            {cert ? (
+                <CertificateDisplayAccordionDetails
+                    cert={cert}
+                    onDelete={(serial) => {
+                        onDelete(serial)
+                    }}
+                    canExportCaPem={canExportCaPem}
+                    canExportP12={canExportP12}
+                />
+            ) : (
                 <AccordionDetails>
                     <LinearProgress />
                 </AccordionDetails>
-            ) : props.cert ? (
-                <CertificateDisplayAccordionDetails
-                    cert={props.cert}
-                    delete={(serial) => props.delete(serial)}
-                    canExportCaPem={props.canExportCaPem}
-                    canExportP12={props.canExportP12}
-                />
-            ) : props.create ? (
-                <CertificateCreateAccordionDetails create={props.create} />
-            ) : (
-                <></>
             )}
         </Accordion>
     )
@@ -361,58 +248,59 @@ function DashboardSectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function PkiDashboardPage() {
-    const { data, status } = useQuery<GetPkiSummaryResponse>({
-        queryFn: async () => await getPkiSummary(),
-        queryKey: ["pki", "summary"],
-    })
-    const hasData = status === "success"
+    const { data } = usePkiSummary()
     const { nonce, increaseNonce } = useNonce()
+
+    const { trigger: deleteCertificateAuthority } = useDeleteCertificateAuthority()
+    const { trigger: deleteServerCertificate } = useDeleteServerCertificate()
+    const { trigger: deleteClientCertificate } = useDeleteClientCertificate()
+
+    useEffect(() => {
+        increaseNonce()
+    }, [data, increaseNonce])
 
     return (
         <Stack gap={2}>
             <Box>
                 <DashboardSectionTitle>Infrastructure</DashboardSectionTitle>
-                <CertificateAccordion
-                    canExportCaPem
-                    cert={data?.ca}
-                    create={(form) => createCertificateAuthority(form).finally(increaseNonce)}
-                    defaultExpanded
-                    delete={(serial) => deleteCertificateAuthority(serial)}
-                    isLoading={!hasData}
-                    key={`ca-${nonce}`}
-                    title="Certificate Authority"
-                />
-                <CertificateAccordion
-                    cert={data?.server}
-                    create={(form) => createServerCertificate(form).finally(increaseNonce)}
-                    defaultExpanded
-                    delete={(serial) => deleteServerCertificate(serial)}
-                    isLoading={!hasData}
-                    key={`server-${nonce}`}
-                    title="Server Certificate"
-                />
+                {data && data.ca === undefined ? (
+                    <CreateCertificateAuthorityAccordion />
+                ) : (
+                    <CertificateAccordion
+                        canExportCaPem
+                        cert={data?.ca}
+                        defaultExpanded
+                        onDelete={(serial) => deleteCertificateAuthority(serial)}
+                        key={`ca`}
+                        title="Certificate Authority"
+                    />
+                )}
+                {data && data.server === undefined ? (
+                    <CreateServerCertificateAccordion />
+                ) : (
+                    <CertificateAccordion
+                        cert={data?.server}
+                        defaultExpanded
+                        onDelete={(serial) => deleteServerCertificate(serial)}
+                        key={`server`}
+                        title="Server Certificate"
+                    />
+                )}
             </Box>
             <Box>
                 <DashboardSectionTitle>Clients</DashboardSectionTitle>
                 {data?.clients?.map((clientCert) => (
                     <CertificateAccordion
                         cert={clientCert}
-                        delete={(serial) => deleteClientCertificate(serial)}
+                        onDelete={(serial) => deleteClientCertificate(serial)}
                         canExportP12
-                        isLoading={!hasData}
                         key={clientCert.serialNumber}
                         title="Client"
                     />
                 ))}
             </Box>
             <Box>
-                <CertificateAccordion
-                    create={(form) => createClientCertificate(form).finally(increaseNonce)}
-                    defaultExpanded
-                    isLoading={!hasData}
-                    key={`create-client-${nonce}`}
-                    title="New Client"
-                />
+                <CreateClientCertificateAccordion key={nonce} />
             </Box>
         </Stack>
     )
