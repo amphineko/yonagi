@@ -67,7 +67,7 @@ export const RlmRestPasswordAuthResponseType = new t.Type<
     ({ cleartext, nt, ssha, ssha512 }) => {
         const response: t.TypeOf<typeof EncodedRlmRestPasswordAuthResponseType> = {}
         if (cleartext) response["control:Cleartext-Password"] = cleartext
-        if (nt) response["control:NT-Password"] = nt
+        if (nt) response["control:NT-Password"] = `0x${nt}`
         if (ssha) response["control:SSHA-Password"] = ssha
         if (ssha512) response["control:SSHA2-512-Password"] = ssha512
         return EncodedRlmRestPasswordAuthResponseType.encode(response)
