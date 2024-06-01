@@ -6,6 +6,7 @@ import * as pkijs from "pkijs"
 
 import { PkijsCertificate } from "."
 import { CryptoEngineShim } from "./cryptoEngine"
+import { convertRdnToPkijsRdn } from "./rdn"
 import { CreateCertificateProps, ExtendedKeyUsages, KeyUsages } from ".."
 import { OID_ClientAuth, OID_CommonName, OID_KP_EapOverLan, OID_OrganizationName, OID_ServerAuth } from "../consts"
 
@@ -61,21 +62,6 @@ function createKeyUsageExt(keyUsages: KeyUsages): pkijs.Extension {
         critical: true,
         extnValue: keyUsage.toBER(false),
         parsedValue: keyUsage,
-    })
-}
-
-function convertRdnToPkijsRdn(rdn: RelativeDistinguishedNames): pkijs.RelativeDistinguishedNames {
-    return new pkijs.RelativeDistinguishedNames({
-        typesAndValues: [
-            new pkijs.AttributeTypeAndValue({
-                type: OID_CommonName,
-                value: new asn1js.BmpString({ value: rdn.commonName }),
-            }),
-            new pkijs.AttributeTypeAndValue({
-                type: OID_OrganizationName,
-                value: new asn1js.BmpString({ value: rdn.organizationName }),
-            }),
-        ],
     })
 }
 
