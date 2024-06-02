@@ -6,7 +6,7 @@ import * as pkijs from "pkijs"
 
 import { PkijsCertificate } from "."
 import { CryptoEngineShim } from "./cryptoEngine"
-import { convertRdnToPkijsRdn } from "./rdn"
+import { ExtendedRelativeDistinguishedNames, convertRdnToPkijsRdn } from "./rdn"
 import { CreateCertificateProps, ExtendedKeyUsages, KeyUsages } from ".."
 import { OID_ClientAuth, OID_CommonName, OID_KP_EapOverLan, OID_OrganizationName, OID_ServerAuth } from "../consts"
 
@@ -117,7 +117,9 @@ export async function createCertificate(
         if (!(issuer instanceof PkijsCertificate)) {
             throw new Error("Cannot derive issuer's subject from non-Pkijs certificate factory")
         }
-        cert.issuer = issuer.pkijsCertificate.subject
+        cert.issuer = new ExtendedRelativeDistinguishedNames({
+            typesAndValues: issuer.pkijsCertificate.subject.typesAndValues,
+        })
     } else {
         cert.issuer = cert.subject
     }
