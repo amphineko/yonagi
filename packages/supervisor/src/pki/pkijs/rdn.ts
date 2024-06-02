@@ -17,11 +17,11 @@ export function convertRdnToPkijsRdn(rdn: RelativeDistinguishedNames): ExtendedR
         typesAndValues: [
             new pkijs.AttributeTypeAndValue({
                 type: OID_CommonName,
-                value: new asn1js.BmpString({ value: rdn.commonName }),
+                value: new asn1js.PrintableString({ value: rdn.commonName }),
             }),
             new pkijs.AttributeTypeAndValue({
                 type: OID_OrganizationName,
-                value: new asn1js.BmpString({ value: rdn.organizationName }),
+                value: new asn1js.PrintableString({ value: rdn.organizationName }),
             }),
         ],
     })
