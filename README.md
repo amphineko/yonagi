@@ -4,7 +4,8 @@
 -   Based on [FreeRADIUS](https://github.com/FreeRADIUS/freeradius-server)
 -   Has a web dashboard for configs and PKI
 -   Supports Aruba/Cisco MPSK and EAP-TLS authentication methods
--   ~~Supports for EAP-GTC and EAP-MSCHAPv2~~ in the future
+-   Supports certificate-based **EAP-TLS** authentication
+-   Supports password-based **EAP-GTC** and **EAP-MSCHAPv2** authentication
 
 ## Getting Started
 
@@ -23,7 +24,7 @@
     -   (Optional) Initialize PKI and generate certificates for EAP-TLS (WPA-Enterprise)
     -   (Optional) Download client certificates from PKI dashboard to your devices
 
--   Restart by using the reload button on the top-right corner, to apply changes of your NAS clients/~~MPSKs~~/PKI
+-   Restart by using the reload button on the top-right corner, to apply changes of your PKI
 
 ## Features & Roadmap
 
@@ -35,8 +36,8 @@
     -   PKI Dashboard
         -   CA/Server/Client Certificate Issue and Delete
         -   Client Certificate Export (PKCS#12 with trust chain)
-            -   ~~PKCS#12 Export Password Input~~ (WIP:hourglass:)
-    -   ~~Password-based Authentication Dashboard~~ (WIP:hourglass:)
+            -   User-defined PKCS#12 Export Password
+    -   Password-based Authentication Dashboard
     -   NAS Client Dashboard
         -   CRUD: Name/Allowed Subnet/Secret
         -   Export/Import
@@ -50,7 +51,7 @@
         -   Client (NAS) CRUD/Bulk-Upsert
         -   MPSK CRUD/Bulk-Upsert
         -   PKI CA/Server/Client CRUD
-        -   ~~Password-based User CRUD~~ (WIP:hourglass:)
+        -   Password-based User CRUD
         -   Radiusd [rlm_rest](https://github.com/FreeRADIUS/freeradius-server/blob/v3.0.x/raddb/mods-available/rest) Interface
         -   Radiusd Log/Status/Reload
     -   PKI
@@ -66,9 +67,10 @@
         -   File/JSON-based Storage
             -   Clients, MPSKs
             -   PKI
-        -   PostgreSQL-backed Storage
+        -   SQLite-backed Storage
             -   Clients, MPSKs
-            -   ~~PKI~~ (WIP:hourglass:)
+            -   PKI
+        -   ~~PostgreSQL-backed Storage~~ (WIP:hourglass:)
 
 ## Project Structure
 
