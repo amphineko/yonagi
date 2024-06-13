@@ -6,6 +6,7 @@ import * as pkijs from "pkijs"
 
 import { PkijsCertificate } from "."
 import { CryptoEngineShim } from "./cryptoEngine"
+import { ExtendedRelativeDistinguishedNames, convertRdnToPkijsRdn } from "./rdn"
 import { CreateCertificateProps, ExtendedKeyUsages, KeyUsages } from ".."
 import { OID_ClientAuth, OID_CommonName, OID_KP_EapOverLan, OID_OrganizationName, OID_ServerAuth } from "../consts"
 
@@ -64,21 +65,6 @@ function createKeyUsageExt(keyUsages: KeyUsages): pkijs.Extension {
     })
 }
 
-function convertRdnToPkijsRdn(rdn: RelativeDistinguishedNames): pkijs.RelativeDistinguishedNames {
-    return new pkijs.RelativeDistinguishedNames({
-        typesAndValues: [
-            new pkijs.AttributeTypeAndValue({
-                type: OID_CommonName,
-                value: new asn1js.BmpString({ value: rdn.commonName }),
-            }),
-            new pkijs.AttributeTypeAndValue({
-                type: OID_OrganizationName,
-                value: new asn1js.BmpString({ value: rdn.organizationName }),
-            }),
-        ],
-    })
-}
-
 export function convertPkijsRdnToRdn(rdn: pkijs.RelativeDistinguishedNames): RelativeDistinguishedNames {
     return F.pipe(
         E.Do,
@@ -131,7 +117,9 @@ export async function createCertificate(
         if (!(issuer instanceof PkijsCertificate)) {
             throw new Error("Cannot derive issuer's subject from non-Pkijs certificate factory")
         }
-        cert.issuer = issuer.pkijsCertificate.subject
+        cert.issuer = new ExtendedRelativeDistinguishedNames({
+            typesAndValues: issuer.pkijsCertificate.subject.typesAndValues,
+        })
     } else {
         cert.issuer = cert.subject
     }
