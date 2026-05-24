@@ -504,7 +504,7 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.56.0.tgz#ef20350fec605a7f7035a01764731b2de0f3782b"
   integrity sha512-gMsVel9D7f2HLkBma9VbtzZRehRogVRfbr++f06nL2vnCGCNlzOD+/MUov/F4p8myyAHspEhVobgjpX64q5m6A==
 
-"@fastify/ajv-compiler@^4.0.0":
+"@fastify/ajv-compiler@^4.0.5":
   version "4.0.5"
   resolved "https://registry.yarnpkg.com/@fastify/ajv-compiler/-/ajv-compiler-4.0.5.tgz#fdb0887a7af51abaae8c1829e8099d34f8ddd302"
   integrity sha512-KoWKW+MhvfTRWL4qrhUwAAZoaChluo0m0vbiJlGMt2GXvL4LVPQEjt8kSpHI3IBq5Rez8fg+XeH3cneztq+C7A==
@@ -552,16 +552,6 @@
   integrity sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==
   dependencies:
     dequal "^2.0.3"
-
-"@fastify/middie@9.0.3":
-  version "9.0.3"
-  resolved "https://registry.yarnpkg.com/@fastify/middie/-/middie-9.0.3.tgz#7d8edfd90dca9ff8e82dc721a460ff3d8646f230"
-  integrity sha512-7OYovKXp9UKYeVMcjcFLMcSpoMkmcZmfnG+eAvtdiatN35W7c+r9y1dRfpA+pfFVNuHGGqI3W+vDTmjvcfLcMA==
-  dependencies:
-    "@fastify/error" "^4.0.0"
-    fastify-plugin "^5.0.0"
-    path-to-regexp "^8.1.0"
-    reusify "^1.0.4"
 
 "@fastify/proxy-addr@^5.0.0":
   version "5.1.0"
@@ -1014,18 +1004,20 @@
     path-to-regexp "3.2.0"
     tslib "2.6.2"
 
-"@nestjs/platform-fastify@^11.1.10":
-  version "11.1.10"
-  resolved "https://registry.yarnpkg.com/@nestjs/platform-fastify/-/platform-fastify-11.1.10.tgz#c9f9347f9496783b6895aa6c63f27cf942b70ec9"
-  integrity sha512-9k26jaDZkq42SaH5/cCsPShd6XeCAuGFF8U63n2lQJwOA8nBmIIGjWy1RDFy+8qFVW0C0DaDdbUPQR5aL274fw==
+"@nestjs/platform-fastify@^11.1.16":
+  version "11.1.16"
+  resolved "https://registry.yarnpkg.com/@nestjs/platform-fastify/-/platform-fastify-11.1.16.tgz#99d0d5b04d6f06ccc63cbe3e217bfb6db2e56ad9"
+  integrity sha512-NwB3ESvaSVBcff4QeXeBcpYVqk81C57ecpF1NzNbci0+TJIC9DFP4YvZxkClmP4N8OGY4BDe6TzSZq6VVrIH0A==
   dependencies:
     "@fastify/cors" "11.2.0"
     "@fastify/formbody" "8.0.2"
-    "@fastify/middie" "9.0.3"
     fast-querystring "1.1.2"
-    fastify "5.6.2"
+    fastify "5.7.4"
+    fastify-plugin "5.1.0"
+    find-my-way "9.5.0"
     light-my-request "6.6.0"
     path-to-regexp "8.3.0"
+    reusify "1.1.0"
     tslib "2.8.1"
 
 "@next/env@14.2.32":
@@ -2906,17 +2898,17 @@ fast-uri@^3.0.0, fast-uri@^3.0.1:
   resolved "https://registry.yarnpkg.com/fast-uri/-/fast-uri-3.1.0.tgz#66eecff6c764c0df9b762e62ca7edcfb53b4edfa"
   integrity sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==
 
-fastify-plugin@^5.0.0:
+fastify-plugin@5.1.0, fastify-plugin@^5.0.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/fastify-plugin/-/fastify-plugin-5.1.0.tgz#7083e039d6418415f9a669f8c25e72fc5bf2d3e7"
   integrity sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==
 
-fastify@5.6.2:
-  version "5.6.2"
-  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.6.2.tgz#e9bd80c869f54440f62f539d646b1c303b56c40f"
-  integrity sha512-dPugdGnsvYkBlENLhCgX8yhyGCsCPrpA8lFWbTNU428l+YOnLgYHR69hzV8HWPC79n536EqzqQtvhtdaCE0dKg==
+fastify@5.7.4:
+  version "5.7.4"
+  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.7.4.tgz#c5779ec5a509f5ea0a6b4232855eddb7125da129"
+  integrity sha512-e6l5NsRdaEP8rdD8VR0ErJASeyaRbzXYpmkrpr2SuvuMq6Si3lvsaVy5C+7gLanEkvjpMDzBXWE5HPeb/hgTxA==
   dependencies:
-    "@fastify/ajv-compiler" "^4.0.0"
+    "@fastify/ajv-compiler" "^4.0.5"
     "@fastify/error" "^4.0.0"
     "@fastify/fast-json-stringify-compiler" "^5.0.0"
     "@fastify/proxy-addr" "^5.0.0"
@@ -2972,10 +2964,10 @@ fill-range@^7.1.1:
   dependencies:
     to-regex-range "^5.0.1"
 
-find-my-way@^9.0.0:
-  version "9.3.0"
-  resolved "https://registry.yarnpkg.com/find-my-way/-/find-my-way-9.3.0.tgz#9f57786b5d772cc45142bf39dd5349f9cc883f91"
-  integrity sha512-eRoFWQw+Yv2tuYlK2pjFS2jGXSxSppAs3hSQjfxVKxM5amECzIgYYc1FEI8ZmhSh/Ig+FrKEz43NLRKJjYCZVg==
+find-my-way@9.5.0, find-my-way@^9.0.0:
+  version "9.5.0"
+  resolved "https://registry.yarnpkg.com/find-my-way/-/find-my-way-9.5.0.tgz#3e6819bf4310b5293f490c032e70be0b506d0dc8"
+  integrity sha512-VW2RfnmscZO5KgBY5XVyKREMW5nMZcxDy+buTOsL+zIPnBlbKm+00sgzoQzq1EVh4aALZLfKdwv6atBGcjvjrQ==
   dependencies:
     fast-deep-equal "^3.1.3"
     fast-querystring "^1.0.0"
@@ -4802,7 +4794,7 @@ path-to-regexp@3.2.0:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-3.2.0.tgz#fa7877ecbc495c601907562222453c43cc204a5f"
   integrity sha512-jczvQbCUS7XmS7o+y1aEO9OBVFeZBQ1MDSEqmO7xSoPgOPoowY/SxLpZ6Vh97/8qHZOteiCKb7gkG9gA2ZUxJA==
 
-path-to-regexp@8.3.0, path-to-regexp@^8.1.0:
+path-to-regexp@8.3.0:
   version "8.3.0"
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-8.3.0.tgz#aa818a6981f99321003a08987d3cec9c3474cd1f"
   integrity sha512-7jdwVIRtsP8MYpdXSwOS0YdD0Du+qOoF/AEPIt88PcCFrZCzx41oxku1jD88hZBwbNUIEfpqvuhjFaMAqMTWnA==
@@ -5217,10 +5209,10 @@ retry@^0.12.0:
   resolved "https://registry.yarnpkg.com/retry/-/retry-0.12.0.tgz#1b42a6266a21f07421d1b0b54b7dc167b01c013b"
   integrity sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==
 
-reusify@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
-  integrity sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==
+reusify@1.1.0, reusify@^1.0.4:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.1.0.tgz#0fe13b9522e1473f51b558ee796e08f11f9b489f"
+  integrity sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==
 
 rfdc@^1.2.0:
   version "1.3.0"
