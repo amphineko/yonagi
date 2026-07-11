@@ -47,7 +47,7 @@ function ClientTableRow({
     serverValues?: Client
     onChange: (validations: ClientTableRowValidations) => void
     onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void
-}): JSX.Element {
+}): React.JSX.Element {
     /**
      * states of **latest validations** of each field
      * new values are updated to the input fields, and only their validations will be propagated here
@@ -120,7 +120,7 @@ function useClientValidatedSubmit(submit: (client: Client) => void) {
     return { handleSubmit, setValidations }
 }
 
-function CreateClientTableRow(): JSX.Element {
+function CreateClientTableRow(): React.JSX.Element {
     const { trigger: createClient } = useCreateClient()
     const { handleSubmit, setValidations } = useClientValidatedSubmit((client) => {
         void createClient(client)
@@ -143,7 +143,7 @@ function CreateClientTableRow(): JSX.Element {
     )
 }
 
-function UpdateClientTableRow({ client }: { client: Client; key: React.Key }): JSX.Element {
+function UpdateClientTableRow({ client }: { client: Client; key: React.Key }): React.JSX.Element {
     const { trigger: updateClient } = useUpdateClient()
     const { trigger: deleteClient } = useDeleteClient()
     const { handleSubmit, setValidations } = useClientValidatedSubmit((client) => {
@@ -176,7 +176,7 @@ function UpdateClientTableRow({ client }: { client: Client; key: React.Key }): J
     )
 }
 
-function ClientTable(): JSX.Element {
+function ClientTable(): React.JSX.Element {
     const { data: clients } = useRadiusClients()
     const { trigger: importClients } = useImportClients()
 

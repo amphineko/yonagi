@@ -18,6 +18,12 @@ import {
 
 import { AbstractCertificateStorage, GetCertificateResult } from ".."
 
+function copyBufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
+    const copy = new Uint8Array(buffer.byteLength)
+    copy.set(buffer)
+    return copy.buffer as ArrayBuffer
+}
+
 class BaseCertificateEntity extends BaseEntity {
     @PrimaryGeneratedColumn("uuid")
     public id!: string
@@ -150,8 +156,8 @@ export class SqliteCertificateStorage extends AbstractCertificateStorage {
         const entities = await this.manager.findBy(ClientCertificateEntity, { revokedAt: IsNull() })
         return entities.map(
             (entity): GetCertificateResult => ({
-                certBer: entity.certBer,
-                privKeyPkcs8Ber: entity.privateKeyBer,
+                certBer: copyBufferToArrayBuffer(entity.certBer),
+                privKeyPkcs8Ber: copyBufferToArrayBuffer(entity.privateKeyBer),
             }),
         )
     }
@@ -172,7 +178,12 @@ export class SqliteCertificateStorage extends AbstractCertificateStorage {
 
     async getClientCertificateBySerialNumber(serialNumber: SerialNumberString): Promise<GetCertificateResult | null> {
         const entity = await this.manager.findOneBy(ClientCertificateEntity, { serialNumber })
-        return entity ? { certBer: entity.certBer, privKeyPkcs8Ber: entity.privateKeyBer } : null
+        return entity
+            ? {
+                  certBer: copyBufferToArrayBuffer(entity.certBer),
+                  privKeyPkcs8Ber: copyBufferToArrayBuffer(entity.privateKeyBer),
+              }
+            : null
     }
 
     async isClientCertificateRevokedBySerialNumber(serialNumber: SerialNumberString): Promise<boolean | null> {
@@ -189,7 +200,12 @@ export class SqliteCertificateStorage extends AbstractCertificateStorage {
     ): Promise<GetCertificateResult | null> {
         const where: FindOptionsWhere<EntityTarget<T>> = { revokedAt: IsNull() }
         const entity = await this.manager.findOneBy(Entity, where)
-        return entity ? { certBer: entity.certBer, privKeyPkcs8Ber: entity.privateKeyBer } : null
+        return entity
+            ? {
+                  certBer: copyBufferToArrayBuffer(entity.certBer),
+                  privKeyPkcs8Ber: copyBufferToArrayBuffer(entity.privateKeyBer),
+              }
+            : null
     }
 
     private async _revokeBySerialNumber<T extends BaseCertificateEntity = BaseCertificateEntity>(

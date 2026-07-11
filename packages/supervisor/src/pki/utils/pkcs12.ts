@@ -1,14 +1,16 @@
 import assert from "node:assert"
 import * as crypto from "node:crypto"
 
-function sha1(...messages: Buffer[]): Buffer {
+type NodeBuffer = Buffer<ArrayBufferLike>
+
+function sha1(...messages: NodeBuffer[]): NodeBuffer {
     return crypto.createHash("sha1").update(Buffer.concat(messages)).digest()
 }
 
 /*
     String to node.js Buffer of UTF-16BE
 */
-function encodePkcs12Password(password: string): Buffer {
+function encodePkcs12Password(password: string): NodeBuffer {
     if (!password.endsWith("\0")) {
         password += "\0"
     }
@@ -29,14 +31,14 @@ function encodePkcs12Password(password: string): Buffer {
 */
 function pkcs12DeriveKey(
     password: string,
-    salt: Buffer,
+    salt: NodeBuffer,
     id: number,
     n: number,
     r: number,
     u: number,
     v: number,
-    h: (...messages: Buffer[]) => Buffer,
-): Buffer {
+    h: (...messages: NodeBuffer[]) => NodeBuffer,
+): NodeBuffer {
     const pwdUtf16Be = encodePkcs12Password(password)
 
     /*  1.  Construct a string, D (the "diversifier"), by concatenating v/8
@@ -66,12 +68,12 @@ function pkcs12DeriveKey(
     const c = Math.ceil(n / u)
 
     /*  6.  For i=1, 2, ..., c, do the following: */
-    const A: Buffer[] = []
+    const A: NodeBuffer[] = []
     for (let i = 0; i < c; ++i) {
         /*  A.  Set A2=H^r(D||I). (i.e., the r-th hash of D||1,
                 H(H(H(... H(D||I)))) 
         */
-        let Ai = Buffer.concat([D, I])
+        let Ai: NodeBuffer = Buffer.concat([D, I])
         for (let j = 0; j < r; ++j) {
             Ai = h(Ai)
         }

@@ -206,6 +206,6 @@ export class PkiController {
     }
 }
 
-function formatPkijsHexView(hexView: ArrayBuffer): string {
+function formatPkijsHexView(hexView: Uint8Array): string {
     return Buffer.from(hexView).toString("hex").toLowerCase()
 }

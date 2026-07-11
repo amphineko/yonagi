@@ -72,7 +72,7 @@ class PinoTypeormLogger extends AbstractLogger {
 
 function createSqliteDataSourceOptions(filePath: string, enableSynchronize: boolean): DataSourceOptions {
     return {
-        type: "sqlite",
+        type: "better-sqlite3",
         database: filePath,
         entities,
         logger: new PinoTypeormLogger(),

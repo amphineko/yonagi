@@ -22,6 +22,7 @@ import { PSK, PSKType } from "@yonagi/common/types/mpsks/PSK"
 import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as t from "io-ts/lib/index"
+import type * as React from "react"
 import { ComponentProps, Key, useEffect, useMemo, useState } from "react"
 
 import { useDeleteMpsk, useImportMpsks, useMpsks, useUpdateMpsk } from "./queries"
@@ -47,7 +48,7 @@ function MpskTableRow({
     serverValues?: CallingStationIdAuthentication
     onChange: (validations: MpskTableRowValidations) => void
     onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void
-}): JSX.Element {
+}): React.JSX.Element {
     /**
      * states of **latest validations** of each field
      * new values are updated to the input fields, and only their validations will be propagated here
@@ -174,7 +175,7 @@ function UpdateMpskTableRow({ mpsk }: { mpsk: CallingStationIdAuthentication; ke
     )
 }
 
-function MpskTable(): JSX.Element {
+function MpskTable(): React.JSX.Element {
     const { data: mpsks, isLoading } = useMpsks()
     const { trigger: importMpsks } = useImportMpsks()
 

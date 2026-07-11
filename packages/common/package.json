@@ -3,6 +3,6 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "ipaddr.js": "^2.1.0"
+        "ipaddr.js": "^2.4.0"
     }
 }

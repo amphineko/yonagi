@@ -41,7 +41,7 @@ function DateTime({ children, type }: { children: number; type: "notAfter" | "no
     return (
         <>
             <Tooltip title={isValid ? "Valid" : "Expired"}>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <Typography> {new Date(children).toLocaleString()}</Typography>
                     {isValid ? (
                         <CheckCircle sx={{ color: "success.main" }} />
@@ -67,7 +67,7 @@ function RDN({ children: { commonName, organizationName } }: { children: Relativ
 
 function CertificateDetailCell({ children, label }: { children: React.ReactNode; label: string }) {
     return (
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
             <Typography component="div" variant="caption">
                 {label}
             </Typography>
@@ -134,7 +134,7 @@ function CertificateDisplayAccordionDetails({
 
     return (
         <AccordionDetails>
-            <Stack gap={2}>
+            <Stack spacing={2}>
                 <Grid container spacing={2}>
                     <CertificateDetailCell label="Subject">
                         <RDN>{cert.subject}</RDN>
@@ -152,7 +152,7 @@ function CertificateDisplayAccordionDetails({
                     <CertificateDetailCell label="Signature">{cert.signature}</CertificateDetailCell>
                 </Grid>
                 <Divider />
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <ConfirmDeleteButton
                         onClick={() => {
                             onDelete(cert.serialNumber)
@@ -206,7 +206,7 @@ function CertificateAccordion({
     return (
         <Accordion defaultExpanded={defaultExpanded} disabled={cert === undefined}>
             <AccordionSummary expandIcon={<ExpandMore />}>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <Typography aria-label="Certificate Type">{title}</Typography>
                     {cert && (
                         <Typography
@@ -260,7 +260,7 @@ export default function PkiDashboardPage() {
     }, [data, increaseNonce])
 
     return (
-        <Stack gap={2}>
+        <Stack spacing={2}>
             <Box>
                 <DashboardSectionTitle>Infrastructure</DashboardSectionTitle>
                 {data && data.ca === undefined ? (

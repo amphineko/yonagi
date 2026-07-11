@@ -1,4 +1,4 @@
-FROM alpine:3.19 AS base
+FROM alpine:3.22 AS base
 
 ARG RADDB=/etc/raddb
 
@@ -28,7 +28,10 @@ COPY . /app/
 FROM base AS dev
 
 RUN \
-    apk add --no-cache freeradius-utils git jq openssl wpa_supplicant
+    apk add --no-cache bash curl freeradius-utils git jq openssl wpa_supplicant
+
+RUN \
+    yarn install --frozen-lockfile
 
 FROM base AS dist
 

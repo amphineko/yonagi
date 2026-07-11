@@ -31,7 +31,7 @@ import CssBaseline from "@mui/material/CssBaseline"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FC, JSX, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from "react"
+import React, { FC, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from "react"
 
 import { useRadiusdStatus, useReloadRadiusd, useRestartRadiusd } from "./queries"
 import { NotificationList, NotificationProvider } from "../lib/notifications"
@@ -50,7 +50,7 @@ function humanize(seconds: number) {
     }
 }
 
-function RadiusdMenu(): JSX.Element {
+function RadiusdMenu(): React.JSX.Element {
     const { trigger: reload } = useReloadRadiusd()
     const { trigger: restart } = useRestartRadiusd()
 
@@ -81,7 +81,7 @@ function RadiusdMenu(): JSX.Element {
     )
 }
 
-function StatusChip(): JSX.Element {
+function StatusChip(): React.JSX.Element {
     const { data: status } = useRadiusdStatus()
 
     const isRunning = status?.lastExitCode === undefined
@@ -124,7 +124,7 @@ function TabButton({
     icon: SvgIconComponent
     isSelected: boolean
     label: string
-}): JSX.Element {
+}): React.JSX.Element {
     return (
         <Link href={href} legacyBehavior passHref>
             <Button
@@ -140,9 +140,9 @@ function TabButton({
     )
 }
 
-function SiteTitle({ children }: { children: ReactNode }): JSX.Element {
+function SiteTitle({ children }: { children: ReactNode }): React.JSX.Element {
     return (
-        <Typography color="text.secondary" fontSize="1em" variant="h1">
+        <Typography color="text.secondary" sx={{ fontSize: "1em" }} variant="h1">
             {children}
         </Typography>
     )
@@ -154,7 +154,7 @@ const darkTheme = createTheme({
     },
 })
 
-function FlexBox({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }): JSX.Element {
+function FlexBox({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }): React.JSX.Element {
     return <Box sx={{ display: "flex", ...sx }}>{children}</Box>
 }
 
@@ -164,7 +164,7 @@ function ProviderReducer({ children, providers }: PropsWithChildren<{ providers:
     }, children)
 }
 
-export function RootClientLayout({ children }: { children: React.ReactNode }): JSX.Element {
+export function RootClientLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
     const pathname = usePathname()
     const router = useRouter()
 

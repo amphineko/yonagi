@@ -46,7 +46,7 @@ export class RadiusUserPasswordEntity extends BaseEntity {
 export class SqlRadiusUserStorage extends AbstractRadiusUserStorage {
     async all(): Promise<readonly RadiusUser[]> {
         return await F.pipe(
-            TE.tryCatch(() => this.repository.find({ select: ["username"] }), E.toError),
+            TE.tryCatch(() => this.repository.find({ select: { username: true } }), E.toError),
             TE.flatMapEither(
                 F.flow(
                     A.map(({ username }) => UsernameType.decode(username)),
