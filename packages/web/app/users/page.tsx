@@ -11,7 +11,6 @@ import {
     CardHeader,
     Chip,
     FormControlLabel,
-    Grid,
     Stack,
     Switch,
     TextField,
@@ -128,7 +127,7 @@ function UserAccordion({ user, passwords }: { user: RadiusUser; passwords?: Radi
     return (
         <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <Person />
                     <Typography
                         variant="h2"
@@ -149,8 +148,8 @@ function UserAccordion({ user, passwords }: { user: RadiusUser; passwords?: Radi
                 </Stack>
             </AccordionSummary>
             <AccordionDetails>
-                <Grid container direction="column" spacing={2}>
-                    <Grid item>
+                <Stack spacing={2}>
+                    <Stack>
                         <Stack direction="column" spacing={2}>
                             <Typography>Current Password Hashes</Typography>
                             <Stack direction="row" spacing={1}>
@@ -159,8 +158,8 @@ function UserAccordion({ user, passwords }: { user: RadiusUser; passwords?: Radi
                                 <PasswordHashChip status={passwords?.clearText === true} method="Clear Text" />
                             </Stack>
                         </Stack>
-                    </Grid>
-                    <Grid item>
+                    </Stack>
+                    <Stack>
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault()
@@ -218,7 +217,7 @@ function UserAccordion({ user, passwords }: { user: RadiusUser; passwords?: Radi
                                                 />
                                             }
                                             label={
-                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                                                     <Typography>Clear Text</Typography>
                                                     {enableCleartext && <Warning color="warning" />}
                                                 </Stack>
@@ -246,8 +245,8 @@ function UserAccordion({ user, passwords }: { user: RadiusUser; passwords?: Radi
                                 </Stack>
                             </Stack>
                         </form>
-                    </Grid>
-                </Grid>
+                    </Stack>
+                </Stack>
             </AccordionDetails>
         </Accordion>
     )
@@ -302,14 +301,14 @@ function AddUserForm() {
             <Card>
                 <CardHeader
                     title={
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                             <PersonAdd />
                             <Typography color="InactiveCaptionText">New User</Typography>
                         </Stack>
                     }
                 />
                 <CardContent>
-                    <Stack direction="row" gap={2}>
+                    <Stack direction="row" spacing={2}>
                         <TextField
                             focused
                             error={!!username && !UsernameType.is(username)}

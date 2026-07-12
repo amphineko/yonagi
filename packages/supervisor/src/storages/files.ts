@@ -2,7 +2,7 @@ import { readFile, writeFile } from "fs/promises"
 
 import { Client, ClientType } from "@yonagi/common/types/Client"
 import { Name } from "@yonagi/common/types/Name"
-import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationId, UnallocatedCallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/mpsks/MPSK"
 import * as E from "fp-ts/Either"
 import * as F from "fp-ts/function"
@@ -154,6 +154,25 @@ export class FileBasedMPSKStorage extends AbstractMPSKStorage {
 
     async getByCallingStationId(callingStationId: CallingStationId): Promise<CallingStationIdAuthentication | null> {
         return (await this.all()).find((mpsk) => mpsk.callingStationId === callingStationId) ?? null
+    }
+
+    async getByCallingStationIdOrClaimPending(
+        callingStationId: CallingStationId,
+    ): Promise<CallingStationIdAuthentication | null> {
+        return await this.mutate((record) => {
+            const exact = record.find((mpsk) => mpsk.callingStationId === callingStationId)
+            if (exact) {
+                return exact
+            }
+
+            const pending = record.find((mpsk) => mpsk.callingStationId === UnallocatedCallingStationId)
+            if (!pending) {
+                return null
+            }
+
+            pending.callingStationId = callingStationId
+            return pending
+        })
     }
 
     async getByName(name: Name): Promise<CallingStationIdAuthentication | null> {

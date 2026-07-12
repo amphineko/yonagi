@@ -21,6 +21,12 @@ function getSafeContentEncryptionParams(algorithm: "DES-EDE3-CBC" | "RC2-40-CBC"
     return params as Omit<typeof params, "pbeScheme">
 }
 
+function copyViewToArrayBuffer(view: Uint8Array): ArrayBuffer {
+    const copy = new Uint8Array(view.byteLength)
+    copy.set(view)
+    return copy.buffer as ArrayBuffer
+}
+
 export async function exportAsPkcs12(
     cert: pkijs.Certificate,
     privKey: CryptoKey,
@@ -28,7 +34,7 @@ export async function exportAsPkcs12(
     p12Password: string,
     crypto: pkijs.ICryptoEngine,
 ): Promise<ArrayBuffer> {
-    const password = Buffer.from(p12Password, "utf8")
+    const password = copyViewToArrayBuffer(Buffer.from(p12Password, "utf8"))
     const certKeyId = crypto.getRandomValues(new Uint8Array(4))
 
     /* certificates */

@@ -16,6 +16,8 @@ function validateCallingStationId(u: unknown, c: t.Context): t.Validation<Callin
 
 export type CallingStationId = t.Branded<string, "CallingStationId">
 
+export const UnallocatedCallingStationId = "00-00-00-00-00-00" as CallingStationId
+
 export const CallingStationIdType = new t.Type<CallingStationId, string>(
     "CallingStationId",
     // is string

@@ -12,7 +12,8 @@ import {
     TextField,
 } from "@mui/material"
 import { SerialNumberString } from "@yonagi/common/types/pki/SerialNumberString"
-import { FormEvent, useState } from "react"
+import type * as React from "react"
+import { useState } from "react"
 import useSWRMutation from "swr/mutation"
 
 import { exportCertificateAuthorityPem, exportClientCertificateP12 } from "./actions"
@@ -35,7 +36,7 @@ export function ExportPkcs12Dialog({
     onClose: () => void
     open: boolean
     serialNumber: SerialNumberString
-}): JSX.Element {
+}): React.JSX.Element {
     const [password, setPassword] = useState("")
 
     const { notifyError, notifySuccess } = useNotifications()
@@ -63,11 +64,13 @@ export function ExportPkcs12Dialog({
             open={open}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                component: "form",
-                onSubmit: (e: FormEvent<HTMLFormElement>) => {
-                    e.preventDefault()
-                    void trigger(password)
+            slotProps={{
+                paper: {
+                    component: "form",
+                    onSubmit: (e: React.FormEvent) => {
+                        e.preventDefault()
+                        void trigger(password)
+                    },
                 },
             }}
         >

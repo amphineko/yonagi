@@ -30,6 +30,10 @@ export abstract class AbstractMPSKStorage {
 
     abstract getByCallingStationId(callingStationId: CallingStationId): Promise<CallingStationIdAuthentication | null>
 
+    abstract getByCallingStationIdOrClaimPending(
+        callingStationId: CallingStationId,
+    ): Promise<CallingStationIdAuthentication | null>
+
     abstract getByName(name: Name): Promise<CallingStationIdAuthentication | null>
 }
 

@@ -50,7 +50,7 @@ function CreateCertificateAccordion({
             <AccordionSummary>{title}</AccordionSummary>
             <AccordionDetails>
                 <form onSubmit={submit}>
-                    <Stack direction="column" gap={2}>
+                    <Stack direction="column" spacing={2}>
                         <CodecTextField
                             codec={NonEmptyStringType}
                             initialValue=""

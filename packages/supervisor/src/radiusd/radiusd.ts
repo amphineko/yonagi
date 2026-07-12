@@ -52,7 +52,10 @@ class Process {
         return this._logBuffer.get()
     }
 
-    constructor(private readonly executable: string) {}
+    constructor(
+        private readonly executable: string,
+        private readonly raddbPath: string,
+    ) {}
 
     private autoRestart(): ChildProcess | null {
         if (this._lastRestart && Date.now() - this._lastRestart.getTime() < 1000) {
@@ -68,7 +71,7 @@ class Process {
             throw new Error("Process already started")
         }
 
-        const child = spawn(this.executable, ["-f", "-l", "stdout"], {
+        const child = spawn(this.executable, ["-d", this.raddbPath, "-f", "-l", "stdout"], {
             shell: false,
             stdio: [null, "pipe", "pipe"],
         })
@@ -261,6 +264,6 @@ export class Radiusd {
         @Inject(forwardRef(() => CertificateAuthorityState)) private ca: CertificateAuthorityState,
         @Inject(forwardRef(() => ServerCertificateState)) private server: ServerCertificateState,
     ) {
-        this._process = new Process(config.radiusdPath)
+        this._process = new Process(config.radiusdPath, config.raddbDirPath)
     }
 }

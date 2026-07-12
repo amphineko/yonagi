@@ -21,6 +21,7 @@
 
     -   Configure your NAS clients (e.g. Aruba Mobility Controllers or Aruba Instant APs)
     -   (Optional) Configure MPSKs for WPA-Personal SSID/devices
+        -   Use `00-00-00-00-00-00` as a pending MPSK MAC address when the device MAC is not yet known. The next authenticating device without an existing MPSK entry claims that pending slot, and Yonagi updates the entry to the device MAC.
     -   (Optional) Initialize PKI and generate certificates for EAP-TLS (WPA-Enterprise)
     -   (Optional) Download client certificates from PKI dashboard to your devices
 
@@ -32,6 +33,7 @@
 
     -   MPSK Authentication Dashboard
         -   CRUD: Name/Phy Address/PSK
+        -   Pending device registration with all-zero MAC address
         -   Export/Import
     -   PKI Dashboard
         -   CA/Server/Client Certificate Issue and Delete

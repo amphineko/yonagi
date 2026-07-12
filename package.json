@@ -6,23 +6,23 @@
         "packages/web"
     ],
     "dependencies": {
-        "@types/node": "^20.10.3",
-        "fp-ts": "^2.16.1",
-        "io-ts": "^2.2.21",
-        "typescript": "^5.3.3"
+        "@types/node": "^26.1.1",
+        "fp-ts": "^2.16.11",
+        "io-ts": "^2.2.22",
+        "typescript": "6.0.3"
     },
     "devDependencies": {
-        "@next/eslint-plugin-next": "^14.0.4",
-        "@typescript-eslint/eslint-plugin": "^6.13.1",
-        "@typescript-eslint/parser": "^6.13.1",
-        "eslint": "^8.55.0",
-        "eslint-config-prettier": "^9.1.0",
+        "@next/eslint-plugin-next": "^16.2.10",
+        "@typescript-eslint/eslint-plugin": "^8.63.0",
+        "@typescript-eslint/parser": "^8.63.0",
+        "eslint": "^10.7.0",
+        "eslint-config-prettier": "^10.1.8",
         "eslint-config-standard": "^17.1.0",
-        "eslint-plugin-import": "^2.29.0",
-        "eslint-plugin-n": "^16.3.1",
-        "eslint-plugin-prettier": "^5.0.1",
-        "eslint-plugin-promise": "^6.1.1",
-        "prettier": "^3.1.0"
+        "eslint-plugin-import": "^2.32.0",
+        "eslint-plugin-n": "^18.2.2",
+        "eslint-plugin-prettier": "^5.5.6",
+        "eslint-plugin-promise": "^7.3.0",
+        "prettier": "^3.9.5"
     },
     "scripts": {
         "lint": "eslint --ext .js,.jsx,.ts,.tsx . --fix",

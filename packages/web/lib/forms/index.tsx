@@ -5,6 +5,7 @@ import * as E from "fp-ts/lib/Either"
 import * as F from "fp-ts/lib/function"
 import * as PR from "io-ts/lib/PathReporter"
 import * as t from "io-ts/lib/index"
+import type * as React from "react"
 import { useState } from "react"
 
 type RecursivePartial<T> = {
@@ -21,7 +22,7 @@ export function ValidatedTextField<A, IO = string>({
     initialValue: IO
     label: string
     onChange: (value: A | undefined) => void
-}): JSX.Element {
+}): React.JSX.Element {
     const [value, setValue] = useState(initialValue)
     const [error, setError] = useState<string | null>(null)
 
@@ -66,9 +67,9 @@ export function ValidatedForm<A>({
     children: (
         update: (f: (current: RecursivePartial<A>) => RecursivePartial<A>) => void,
         trySubmit: () => void,
-    ) => JSX.Element
+    ) => React.JSX.Element
     submit: (form: A) => void
-}): JSX.Element {
+}): React.JSX.Element {
     const [fields, setFields] = useState<RecursivePartial<A>>({})
     return children(setFields, () => {
         F.pipe(decoder.decode(fields), E.map(submit))
@@ -89,7 +90,7 @@ export function CodecTextField<A, IO extends string = string>({
     label?: string
     onChange: (validation: t.Validation<A>) => void
     textFieldProps?: React.ComponentProps<typeof TextField>
-}): JSX.Element {
+}): React.JSX.Element {
     const [value, setValue] = useState<IO>(initialValue)
     const [error, setError] = useState<string | null>(null)
 

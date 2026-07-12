@@ -49,7 +49,7 @@ export class RlmRestController {
         return await F.pipe(
             TE.fromEither(validateRequestParam(rawBody, RlmRestMacAuthRequestType)),
             tryCatchF(
-                ({ callingStationId }) => this.mpskStorage.getByCallingStationId(callingStationId),
+                ({ callingStationId }) => this.mpskStorage.getByCallingStationIdOrClaimPending(callingStationId),
                 (reason) => new InternalServerErrorException(reason),
             ),
             TE.filterOrElseW(
