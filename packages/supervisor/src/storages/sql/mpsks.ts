@@ -1,6 +1,6 @@
 import { Inject, Injectable, forwardRef } from "@nestjs/common"
 import { Name } from "@yonagi/common/types/Name"
-import { CallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
+import { CallingStationId, UnallocatedCallingStationId } from "@yonagi/common/types/mpsks/CallingStationId"
 import { CallingStationIdAuthentication, MPSKType } from "@yonagi/common/types/mpsks/MPSK"
 import { mapValidationLeftError } from "@yonagi/common/utils/Either"
 import { getOrThrow } from "@yonagi/common/utils/TaskEither"
@@ -113,6 +113,31 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
         )()
     }
 
+    async getByCallingStationIdOrClaimPending(
+        callingStationId: CallingStationId,
+    ): Promise<CallingStationIdAuthentication | null> {
+        return await this.manager.transaction(async (manager) => {
+            const exact = await manager.findBy(SqlMPSKEntity, { callingStationId })
+            if (exact.length > 1) {
+                throw new Error(`Unexpected multiple MPSKs with the same Calling-Station-Id: ${callingStationId}`)
+            }
+            if (exact.length === 1) {
+                return this.decodeMpskEntity(exact[0])
+            }
+
+            const pending = await manager.findOne(SqlMPSKEntity, {
+                where: { callingStationId: UnallocatedCallingStationId },
+                order: { id: "ASC" },
+            })
+            if (!pending) {
+                return null
+            }
+
+            pending.callingStationId = callingStationId
+            return this.decodeMpskEntity(await manager.save(pending))
+        })
+    }
+
     async getByName(name: Name): Promise<CallingStationIdAuthentication | null> {
         return await F.pipe(
             TE.tryCatch(async () => await this.repository.findOneBy({ name }), E.toError),
@@ -128,6 +153,18 @@ export class SqlMPSKStorage extends AbstractMPSKStorage {
             ),
             getOrThrow(),
         )()
+    }
+
+    private decodeMpskEntity(entity: SqlMPSKEntity): CallingStationIdAuthentication {
+        const decoded = F.pipe(
+            MPSKType.decode(entity),
+            E.mapLeft((errors) => new Error(PR.failure(errors).join("\n"))),
+        )
+        if (E.isLeft(decoded)) {
+            throw decoded.left
+        }
+
+        return decoded.right
     }
 }
 
