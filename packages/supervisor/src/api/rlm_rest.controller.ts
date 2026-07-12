@@ -56,7 +56,7 @@ export class RlmRestController {
                 (mpsk): mpsk is CallingStationIdAuthentication => mpsk !== null,
                 () => new NotFoundException("No MPSK found"),
             ),
-            TE.map(({ psk }) => ({ arubaMpskPassphrase: psk, mediumType: "IEEE-802" as const })),
+            TE.map(({ name, psk }) => ({ arubaMpskPassphrase: psk, mediumType: "IEEE-802" as const, username: name })),
             getOrThrow(),
         )()
     }

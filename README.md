@@ -34,6 +34,7 @@
     -   MPSK Authentication Dashboard
         -   CRUD: Name/Phy Address/PSK
         -   Pending device registration with all-zero MAC address
+        -   MPSK entry name returned to FreeRADIUS as `User-Name`, allowing Aruba controllers and APs to display the client name correctly
         -   Export/Import
     -   PKI Dashboard
         -   CA/Server/Client Certificate Issue and Delete

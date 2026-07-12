@@ -1,3 +1,4 @@
+import { Name, NameType } from "@yonagi/common/types/Name"
 import { CallingStationId, CallingStationIdType } from "@yonagi/common/types/mpsks/CallingStationId"
 import { PSK, PSKType } from "@yonagi/common/types/mpsks/PSK"
 import * as E from "fp-ts/Either"
@@ -35,16 +36,19 @@ export const RlmRestMacAuthRequestType = new t.Type<
 export interface RlmRestMacAuthResponse {
     arubaMpskPassphrase: PSK
     mediumType: "IEEE-802"
+    username: Name
 }
 
 const BaseRlmRestMacAuthResponse = t.type({
     arubaMpskPassphrase: PSKType,
     mediumType: t.literal("IEEE-802"),
+    username: NameType,
 })
 
 const EncodedRlmRestMacAuthResponseType = t.type({
     "Aruba-MPSK-Passphrase": attribute("MpskPassphrase", "string", t.string),
     "Tunnel-Medium-Type": attribute("TunnelMediumType", "string", t.literal("IEEE-802")),
+    "User-Name": attribute("Username", "string", t.string),
 })
 
 export type EncodedRlmRestMacAuthResponse = t.OutputOf<typeof EncodedRlmRestMacAuthResponseType>
@@ -58,9 +62,10 @@ export const RlmRestMacAuthResponseType = new t.Type<
     () => {
         throw new Error("Decoding of this type is unnecessary")
     },
-    ({ arubaMpskPassphrase }) =>
+    ({ arubaMpskPassphrase, username }) =>
         EncodedRlmRestMacAuthResponseType.encode({
             "Aruba-MPSK-Passphrase": arubaMpskPassphrase,
             "Tunnel-Medium-Type": "IEEE-802",
+            "User-Name": username,
         }),
 )
