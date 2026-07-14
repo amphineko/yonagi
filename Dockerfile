@@ -3,7 +3,12 @@ FROM alpine:3.22 AS base
 ARG RADDB=/etc/raddb
 
 RUN \
-    apk add --no-cache freeradius freeradius-eap freeradius-rest nodejs yarn
+    apk add --no-cache \
+        freeradius=3.0.27-r1 \
+        freeradius-eap=3.0.27-r1 \
+        freeradius-rest=3.0.27-r1 \
+        nodejs \
+        yarn
 
 ENV \
     SUPERVISOR_DATA_DIR=/data \
@@ -28,7 +33,7 @@ COPY . /app/
 FROM base AS dev
 
 RUN \
-    apk add --no-cache bash curl freeradius-utils git jq openssl wpa_supplicant
+    apk add --no-cache bash curl freeradius-utils=3.0.27-r1 git jq openssl wpa_supplicant
 
 RUN \
     yarn install --frozen-lockfile
